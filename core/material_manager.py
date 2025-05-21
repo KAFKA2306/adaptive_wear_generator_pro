@@ -39,3 +39,25 @@ def load_material_presets():
         return data
     except Exception:
         return []
+
+# --- マテリアル生成（Blender 4.1対応）---
+def create_lavender_material():
+    mat = bpy.data.materials.new("Lavender_Trans")
+    mat.use_nodes = True
+    nodes = mat.node_tree.nodes
+    links = mat.node_tree.links
+    for n in nodes: nodes.remove(n)
+    out = nodes.new("ShaderNodeOutputMaterial")
+    bsdf = nodes.new("ShaderNodeBsdfPrincipled")
+    out.location = (200,0)
+    bsdf.location = (0,0)
+    # ラベンダー色＋半透明
+    bsdf.inputs["Base Color"].default_value = (0.7, 0.5, 1.0, 1.0)
+    bsdf.inputs["Alpha"].default_value = 0.4
+    # Blender 4.x対応: Specular or Specular IOR Level
+    if "Specular" in bsdf.inputs:
+        bsdf.inputs["Specular"].default_value = 0.5
+    elif "Specular IOR Level" in bsdf.inputs:
+        bsdf.inputs["Specular IOR Level"].default_value = 0.5
+    links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
+    return mat

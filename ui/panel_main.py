@@ -19,18 +19,17 @@ class AWGP_PT_MainPanel(bpy.types.Panel):
             col = panel.column()
             col.prop(props, "garment_type", text="衣装タイプ") # 衣装タイプドロップダウンを追加
             col.operator("awgp.generate_garment", text="基本衣装を生成")
-            col.operator("awgp.generate_wear", text="生成") # awgp.generate_pants を awgp.generate_wear に変更
+            # 衣装タイプを選択して生成オペレーターを呼び出す
+            generate_op = col.operator("awgp.generate_wear", text="生成")
+            generate_op.garment_type = props.garment_type
+            generate_op.fit_tightly = props.fit_tightly
+            generate_op.thickness = props.thickness
 
             # パネル内にプロパティを表示
             box = col.box()
             box.label(text="フィット設定")
-            operator_props = box.operator("awgp.generate_garment", text="密着設定で生成")
-            operator_props.fit_tightly = True
-            operator_props.thickness = 1.0
-
-            operator_props = box.operator("awgp.generate_garment", text="ゆるめ設定で生成")
-            operator_props.fit_tightly = False
-            operator_props.thickness = 3.0
+            box.prop(props, "fit_tightly", text="フィット感を密着させる")
+            box.prop(props, "thickness", text="厚み")
 
 class AWGP_PT_MaterialPanel(bpy.types.Panel):
     bl_label = "マテリアル設定"
@@ -50,7 +49,7 @@ class AWGP_PT_MaterialPanel(bpy.types.Panel):
                                new="material.new", rows=3, cols=8)
 
         # カラーピッカー
-        if context.active_object and context.active_object.active_object.active_material:
+        if context.active_object and context.active_object.active_material:
             mat = context.active_object.active_material
             if mat.use_nodes:
                 # ノードベースマテリアルのカラーを設定
@@ -117,3 +116,16 @@ class AWGP_OT_ExportFBX(bpy.types.Operator):
     def invoke(self, context, _event): # event を _event に変更
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
+
+# --- パネル ---
+class UNDERWEAR_PT_Main(bpy.types.Panel):
+    bl_label = "ミニマル下着生成"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "下着"
+
+    def draw(self, context):
+        props = context.scene.underwear_props
+        layout = self.layout
+        layout.prop_search(props, "base_body", bpy.data, "objects", text="素体")
+        layout.operator("underwear.generate", text="パンツ生成")
