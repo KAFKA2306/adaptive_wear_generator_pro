@@ -107,6 +107,23 @@ class AWG_OT_GenerateWear(bpy.types.Operator): # クラス名を修正
         additional_settings = {}
         current_wear_type_info = next((item for item in wear_types_config if item["id"] == wear_type), None)
 
+
+
+
+
+
+
+
+
+print()
+print()
+print()
+print()
+print()
+
+
+
+
         if current_wear_type_info and "additional_props" in current_wear_type_info:
             for prop_name in current_wear_type_info["additional_props"]:
                 if hasattr(props, prop_name):
