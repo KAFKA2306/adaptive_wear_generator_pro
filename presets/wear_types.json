@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "id": "Socks",
+    "name": "Socks",
+    "description": "Generate socks.",
+    "additional_props": ["sock_length"]
+  },
+  {
+    "id": "Gloves",
+    "name": "Gloves",
+    "description": "Generate gloves.",
+    "additional_props": ["glove_fingers"]
+  },
+  {
+    "id": "Pants",
+    "name": "Pants",
+    "description": "Generate pants.",
+    "additional_props": []
+  },
+  {
+    "id": "Tshirt",
+    "name": "T-shirt",
+    "description": "Generate a T-shirt.",
+    "additional_props": []
+  }
+]

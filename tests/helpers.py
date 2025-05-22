@@ -5,21 +5,28 @@ import bpy
 
 def setup_addon_import_path():
     """アドオンのインポートパスをセットアップする関数"""
-    # アドオンのルートディレクトリをパスに追加
-    addon_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # アドオンのルートディレクトリとその親ディレクトリをパスに追加
+    addon_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # アドオンルート
+    parent_dir_of_addon = os.path.dirname(addon_root) # アドオンの親 (例: addons ディレクトリ)
+
+    if parent_dir_of_addon not in sys.path:
+        sys.path.insert(0, parent_dir_of_addon) # 最初に検索されるようにする
     if addon_root not in sys.path:
-        sys.path.append(addon_root)
+        sys.path.insert(0, addon_root) # アドオンルートも追加
 
 def setup_module_path():
     """モジュールのインポートパスをセットアップする関数"""
-    # プロジェクトのルートディレクトリとテストディレクトリをsys.pathに追加
-    project_root = os.path.dirname(os.path.abspath(__file__)) # helpers.pyがあるディレクトリ (testsディレクトリ)
-    addon_root = os.path.dirname(project_root) # プロジェクトのルートディレクトリ
+    # プロジェクトのルートディレクトリとテストディレクトリ、およびアドオンの親をsys.pathに追加
+    tests_dir = os.path.dirname(os.path.abspath(__file__)) # helpers.pyがあるディレクトリ (testsディレクトリ)
+    addon_root = os.path.dirname(tests_dir) # プロジェクトのルートディレクトリ (アドオンルート)
+    parent_dir_of_addon = os.path.dirname(addon_root) # アドオンの親
 
+    if parent_dir_of_addon not in sys.path:
+        sys.path.insert(0, parent_dir_of_addon)
     if addon_root not in sys.path:
-        sys.path.append(addon_root)
-    if project_root not in sys.path:
-        sys.path.append(project_root)
+        sys.path.insert(0, addon_root)
+    if tests_dir not in sys.path:
+        sys.path.insert(0, tests_dir)
 
 
 class BlenderTestCase(unittest.TestCase):

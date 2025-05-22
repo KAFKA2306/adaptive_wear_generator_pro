@@ -1,1 +1,1 @@
-All tests passed.
+Tests failed with exit code 1.

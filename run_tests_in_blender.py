@@ -7,13 +7,21 @@ import os
 # プロジェクトのルートディレクトリをsys.pathに追加
 # プロジェクトのルートディレクトリとテストディレクトリをsys.pathに追加
 # BlenderのPython環境からアドオンモジュールおよびテストモジュールをインポートできるようにするため
-project_root = os.path.dirname(os.path.abspath(__file__)) # run_tests_in_blender.pyがあるディレクトリ
-tests_dir = os.path.join(project_root, "tests")
+addon_root = os.path.dirname(os.path.abspath(__file__)) # run_tests_in_blender.pyがあるディレクトリ (アドオンルート)
+parent_dir_of_addon = os.path.dirname(addon_root) # アドオンルートの親ディレクトリ
 
-if project_root not in sys.path:
-    sys.path.append(project_root)
+if parent_dir_of_addon not in sys.path:
+    sys.path.append(parent_dir_of_addon)
+
+# testsディレクトリもパスに追加 (tests.helpersなどをインポートするため)
+tests_dir = os.path.join(addon_root, "tests")
 if tests_dir not in sys.path:
     sys.path.append(tests_dir)
+# アドオンルート自体もパスに追加しておくことで、アドオン内のスクリプトが
+# 他のスクリプトを相対パスなしでインポートする場合に対応できることがある（例：import core.utils）
+# ただし、通常はパッケージ名からの絶対インポートが推奨される
+if addon_root not in sys.path:
+    sys.path.append(addon_root)
 
 # pytestを実行
 # Blenderのコマンドライン引数をpytestに渡さないように、sys.argvを操作する

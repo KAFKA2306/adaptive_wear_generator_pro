@@ -1,131 +1,104 @@
 import bpy
+import json
+import os # os.path を使用するため
 
-class AWGP_PT_MainPanel(bpy.types.Panel):
+class AWG_PT_MainPanel(bpy.types.Panel):
+    """AdaptiveWear Generator Pro メインパネル"""
     bl_label = "AdaptiveWear Generator"
-    bl_idname = "AWGP_PT_main_panel"
+    bl_idname = "AWG_PT_MainPanel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'AdaptiveWear'
+    bl_category = "AdaptiveWear" # タブのカテゴリ名
 
     def draw(self, context):
         layout = self.layout
-        props = context.scene.adaptive_wear_props # シーンプロパティを取得
+        scene = context.scene
+        props = scene.adaptive_wear_generator_pro # プロパティグループを取得
 
-        # Blender 4.1新機能：レイアウトパネル
-        header, panel = layout.panel("generate_options", default_closed=False)
-        header.label(text="衣装生成オプション")
+        # --- 基本設定 ---
+        box_base = layout.box()
+        box_base.label(text="基本設定", icon='OBJECT_DATA')
+        row = box_base.row()
+        row.prop(props, "base_body")
 
-        if panel:
-            col = panel.column()
-            col.prop(props, "garment_type", text="衣装タイプ") # 衣装タイプドロップダウンを追加
-            col.operator("awgp.generate_garment", text="基本衣装を生成")
-            # 衣装タイプを選択して生成オペレーターを呼び出す
-            generate_op = col.operator("awgp.generate_wear", text="生成")
-            generate_op.garment_type = props.garment_type
-            generate_op.fit_tightly = props.fit_tightly
-            generate_op.thickness = props.thickness
+        row = box_base.row()
+        row.prop(props, "wear_type")
 
-            # パネル内にプロパティを表示
-            box = col.box()
-            box.label(text="フィット設定")
-            box.prop(props, "fit_tightly", text="フィット感を密着させる")
-            box.prop(props, "thickness", text="厚み")
+        # --- 追加設定 (衣装タイプに連動) ---
+        addon_prefs = context.preferences.addons.get(__package__.split('.')[0], None)
+        if addon_prefs:
+            presets_dir = os.path.join(os.path.dirname(addon_prefs.filepath), "presets")
+            wear_types_file = os.path.join(presets_dir, "wear_types.json")
 
-class AWGP_PT_MaterialPanel(bpy.types.Panel):
-    bl_label = "マテリアル設定"
-    bl_idname = "AWGP_PT_material_panel"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = 'AdaptiveWear'
-    bl_parent_id = "AWGP_PT_main_panel"
-    bl_options = {'DEFAULT_CLOSED'}
+            additional_props_to_display = []
+            if os.path.exists(wear_types_file):
+                try:
+                    with open(wear_types_file, 'r', encoding='utf-8') as f:
+                        wear_types_data = json.load(f)
+                    
+                    current_wear_type_id = props.wear_type
+                    for wear_type_info in wear_types_data:
+                        if wear_type_info.get("id") == current_wear_type_id:
+                            additional_props_to_display = wear_type_info.get("additional_props", [])
+                            break
+                except json.JSONDecodeError:
+                    layout.label(text="Error: wear_types.json is corrupted.", icon='ERROR')
+                except Exception as e: # pylint: disable=broad-except
+                    layout.label(text=f"Error loading wear_types.json: {e}", icon='ERROR')
 
-    def draw(self, context):
-        layout = self.layout
 
-        # マテリアルプレビュー（Blender 4.1新機能活用）
-        row = layout.row()
-        row.template_ID_preview(context.active_object, "active_material",
-                               new="material.new", rows=3, cols=8)
+            if additional_props_to_display:
+                box_additional = layout.box()
+                box_additional.label(text="追加設定", icon='SETTINGS')
+                for prop_name in additional_props_to_display:
+                    if hasattr(props, prop_name):
+                        box_additional.prop(props, prop_name)
+                    else:
+                        # 念のため、プロパティが存在しない場合のエラー表示
+                        box_additional.label(text=f"プロパティ '{prop_name}' が見つかりません。", icon='ERROR')
+            elif props.wear_type: # wear_type が選択されているが、追加プロパティがない場合
+                # 必要であれば「追加設定はありません」などのメッセージを表示
+                # layout.label(text="追加設定はありません。")
+                pass
 
-        # カラーピッカー
-        if context.active_object and context.active_object.active_material:
-            mat = context.active_object.active_material
-            if mat.use_nodes:
-                # ノードベースマテリアルのカラーを設定
-                principled = mat.node_tree.nodes.get('Principled BSDF')
-                if principled:
-                    layout.prop(principled.inputs['Base Color'], "default_value", text="色")
-                    layout.prop(principled.inputs['Alpha'], "default_value", text="不透明度")
+
+        # --- フィット設定 ---
+        box_fit = layout.box()
+        box_fit.label(text="フィット設定", icon='MOD_CLOTH') # アイコン例
+        row = box_fit.row()
+        row.prop(props, "tight_fit")
+        row = box_fit.row()
+        row.prop(props, "thickness")
+
+        # --- 衣装生成ボタン ---
+        layout.separator() # スペーサー
+        row = layout.row(align=True)
+        row.scale_y = 1.5 # ボタンを少し大きくする
+        # オペレーターIDは仮のものを指定
+        row.operator("awg.generate_wear", text="Generate Wear", icon='PLAY')
+
+
 def register():
-    bpy.utils.register_class(AWGP_PT_MainPanel)
-    bpy.utils.register_class(AWGP_PT_MaterialPanel)
-    bpy.utils.register_class(AWGP_PT_ExportPanel)
-    bpy.utils.register_class(AWGP_OT_ExportFBX)
+    try:
+        # 既に登録されている場合に備えて、一度登録解除を試みる
+        bpy.utils.unregister_class(AWG_PT_MainPanel)
+    except RuntimeError:
+        pass # まだ登録されていなければ何もしない
+    bpy.utils.register_class(AWG_PT_MainPanel)
 
 def unregister():
-    bpy.utils.unregister_class(AWGP_OT_ExportFBX)
-    bpy.utils.unregister_class(AWGP_PT_ExportPanel)
-    bpy.utils.unregister_class(AWGP_PT_MaterialPanel)
-    bpy.utils.unregister_class(AWGP_PT_MainPanel)
-class AWGP_PT_ExportPanel(bpy.types.Panel):
-    bl_label = "エクスポート"
-    bl_idname = "AWGP_PT_export_panel"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = 'AdaptiveWear'
-    bl_parent_id = "AWGP_PT_main_panel"
-    bl_options = {'DEFAULT_CLOSED'}
+    bpy.utils.unregister_class(AWG_PT_MainPanel)
 
-    def draw(self, _context): # context を _context に変更
-        layout = self.layout
-        col = layout.column(align=True)
-
-        col.label(text="選択したオブジェクトをエクスポート:")
-        col.operator("awgp.export_fbx", text="FBXとして保存")
-
-class AWGP_OT_ExportFBX(bpy.types.Operator):
-    bl_idname = "awgp.export_fbx"
-    bl_label = "FBXエクスポート"
-    bl_description = "選択した衣装をFBXとしてエクスポート"
-    bl_options = {'REGISTER', 'UNDO'}
-
-    filepath: bpy.props.StringProperty(
-        name="File Path",
-        description="FBXファイルの保存先",
-        default="//adaptive_wear.fbx",
-        subtype='FILE_PATH'
-    )
-
-    def execute(self, context):
-        obj = context.active_object
-        if not obj:
-            self.report({'ERROR'}, "オブジェクトが選択されていません")
-            return {'CANCELLED'}
-
-        from ..core.export_tools import export_to_fbx
-        success = export_to_fbx(obj, self.filepath)
-
-        if success:
-            self.report({'INFO'}, f"FBXエクスポート成功: {self.filepath}")
-            return {'FINISHED'}
-        else:
-            self.report({'ERROR'}, "FBXエクスポートに失敗しました")
-            return {'CANCELLED'}
-
-    def invoke(self, context, _event): # event を _event に変更
-        context.window_manager.fileselect_add(self)
-        return {'RUNNING_MODAL'}
-
-# --- パネル ---
-class UNDERWEAR_PT_Main(bpy.types.Panel):
-    bl_label = "ミニマル下着生成"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "下着"
-
-    def draw(self, context):
-        props = context.scene.underwear_props
-        layout = self.layout
-        layout.prop_search(props, "base_body", bpy.data, "objects", text="素体")
-        layout.operator("underwear.generate", text="パンツ生成")
+if __name__ == "__main__":
+    # テスト用に登録・登録解除を行う場合
+    # 既に登録されている可能性を考慮して try-except で囲む
+    try:
+        unregister() # 既存のものをアンロード試行
+    except RuntimeError: # Blenderがクラス未登録時に発生させるエラー
+        pass
+    except BaseException as ex: # pylint: disable=broad-except # 開発中のテスト用なので広範な例外を許可
+        # BaseException を捕捉することで、SystemExit や KeyboardInterrupt も捕捉対象になるが、
+        # __main__ ブロックのテストコードなので許容する。
+        # 通常のコードでは Exception を使うべき。
+        print(f"Unregistering AWG_PT_MainPanel failed (unexpected): {ex}")
+    register()

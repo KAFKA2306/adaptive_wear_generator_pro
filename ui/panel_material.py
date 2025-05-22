@@ -12,6 +12,10 @@ class AWGP_PT_MaterialPanel(bpy.types.Panel):
         layout.label(text="マテリアルパネル（未実装）")
 
 def register():
+    try:
+        bpy.utils.unregister_class(AWGP_PT_MaterialPanel)
+    except RuntimeError:
+        pass
     bpy.utils.register_class(AWGP_PT_MaterialPanel)
 
 def unregister():

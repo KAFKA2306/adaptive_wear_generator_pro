@@ -12,6 +12,10 @@ class AWGP_PT_ExportPanel(bpy.types.Panel):
         layout.label(text="エクスポートパネル（未実装）")
 
 def register():
+    try:
+        bpy.utils.unregister_class(AWGP_PT_ExportPanel)
+    except RuntimeError:
+        pass
     bpy.utils.register_class(AWGP_PT_ExportPanel)
 
 def unregister():
