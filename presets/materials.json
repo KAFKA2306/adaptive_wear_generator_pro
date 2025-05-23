@@ -1,1 +1,67 @@
-[]
+[
+  {
+    "wear_type": "T_SHIRT",
+    "name": "Cotton_TShirt",
+    "color": [
+      0.9,
+      0.9,
+      0.9,
+      1.0
+    ],
+    "alpha": 1.0,
+    "specular": 0.2,
+    "roughness": 0.8
+  },
+  {
+    "wear_type": "PANTS",
+    "name": "Denim_Pants",
+    "color": [
+      0.2,
+      0.3,
+      0.6,
+      1.0
+    ],
+    "alpha": 1.0,
+    "specular": 0.3,
+    "roughness": 0.9
+  },
+  {
+    "wear_type": "BRA",
+    "name": "Silk_Bra",
+    "color": [
+      0.9,
+      0.8,
+      0.8,
+      1.0
+    ],
+    "alpha": 1.0,
+    "specular": 0.6,
+    "roughness": 0.3
+  },
+  {
+    "wear_type": "SOCKS",
+    "name": "Cotton_Socks",
+    "color": [
+      0.1,
+      0.1,
+      0.1,
+      1.0
+    ],
+    "alpha": 1.0,
+    "specular": 0.1,
+    "roughness": 0.95
+  },
+  {
+    "wear_type": "GLOVES",
+    "name": "Leather_Gloves",
+    "color": [
+      0.4,
+      0.3,
+      0.2,
+      1.0
+    ],
+    "alpha": 1.0,
+    "specular": 0.4,
+    "roughness": 0.6
+  }
+]

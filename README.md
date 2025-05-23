@@ -1,111 +1,157 @@
 # AdaptiveWear Generator Pro
 
-AdaptiveWear Generator Pro は、Blender 用のアドオンであり、アバター向けの衣服を自動的に生成し、素体にフィットさせることを目的としています。
+AdaptiveWear Generator Pro は、Blender 4.4+ 用の高度なアドオンで、3Dキャラクターの素体から密着衣装を自動生成します。AI駆動のメッシュ生成アルゴリズムと高精度フィッティングエンジンにより、プロフェッショナルクオリティの衣装を簡単に作成できます。
 
-## 開発者向け情報
+## 主な機能
 
-このセクションでは、AdaptiveWear Generator Pro の開発に貢献したい方向けの情報を提供します。
+### **衣装生成機能**
+- **Tシャツ**: 胴体・腕部をカバーする上半身衣装
+- **パンツ**: 腰部から下半身をカバーする衣装
+- **ブラジャー**: 胸部の下着衣装
+- **靴下**: 足首から膝上まで長さ調整可能
+- **手袋**: 指あり・指なし選択可能
 
-### プロジェクトの目的と開発プロセス
+### **高度なフィッティング**
+- **密着フィット**: 素体に完全密着するタイトフィット
+- **厚み調整**: 0.001〜0.1mまでの精密な厚み設定
+- **Shrinkwrapアルゴリズム**: 素体形状への自動適合
 
-このプロジェクトは、ユーザーが簡単にアバター用の衣服を生成し、既存の素体にフィットさせることができるツールを提供することを目指しています。開発は、以下の原則に基づいています。
+### **完全なリギング対応**
+- **ボーン転送**: 素体のアーマチュア構造を自動コピー
+- **ウェイト転送**: Data Transferモディファイアによる高精度ウェイト適用
+- **ブレンドシェイプ転送**: 表情やシェイプキーの完全継承
 
--   **小さなタスク**: 各タスクは小さく、テスト可能であること。
--   **明確な開始と終了**: 各タスクには明確な開始点と終了点があること。
--   **単一の関心事**: 各タスクは単一の関心事に焦点を当てること。
+### **スマートマテリアル**
+- **プリセットシステム**: JSON形式のマテリアル設定
+- **Principled BSDF**: Blender 4.4対応の最新シェーダー
+- **衣装タイプ別**: 自動的に適切なマテリアルを適用
 
-### コーディングプロトコル
+## システム要件
 
-コードを書く際は、以下のプロトコルに従ってください。
+- **Blender**: 4.1.0 以上（4.4 推奨）
 
--   必要最低限のコードのみを書く。
--   広範囲にわたる変更を行わない。
--   現在のタスクにのみ焦点を当て、無関係な編集は避ける。
--   コードは正確で、モジュール化されており、テスト可能であること。
--   既存の機能を壊さない。
--   ユーザー側での設定が必要な場合 (例: Supabase/AWS 設定)、明確に指示する。
+## インストール方法
 
-### テスト実行
+### **手動インストール**
+2. Blenderを起動し、**編集** → **プリファレンス** → **アドオン**を開く
+3. **インストール**ボタンをクリックしてZIPファイルを選択
+4. **AdaptiveWear Generator Pro**にチェックを入れて有効化
 
-Blender 環境でテストを実行するには、以下の点に注意してください。
 
--   **テストフレームワーク**: Blender の標準 Python 環境には `pytest` が含まれていないため、[`unittest`](https://docs.python.org/ja/3/library/unittest.html) を使用してください。
--   **Blender 実行ファイルの指定**: テストをバックグラウンドで実行する場合、Blender の実行ファイルをフルパスで指定する必要があります。例: `"C:\Program Files\Blender Foundation\Blender 4.1\blender.exe"`
--   **外部モジュールのインポートと `sys.path`**: テストスクリプト内でプロジェクトのルートディレクトリにあるモジュールをインポートするためには、テストスクリプトの実行時に `sys.path` にプロジェクトルートを追加する必要があります。
+## 使用方法
 
+### **基本操作**
+
+1. **素体の準備**
+   - VRChat向けアバターを読み込む
+   - 
+2. **パネルアクセス**
+   - **3Dビューポート** → **サイドバー（Nキー）** → **AdaptiveWear**タブ
+
+3. **衣装生成**
+   - **素体メッシュ**: 対象となるキャラクターを選択
+   - **衣装タイプ**: 生成したい衣装を選択
+   - **フィット設定**: 密着度と厚みを調整
+   - **Generate Wear**ボタンをクリック
+
+### **高度な設定**
+
+**靴下の場合:**
+```
+靴下の長さ: 0.0（足首）〜 1.0（膝上）
+```
+
+**手袋の場合:**
+```
+手袋の指の有無: 指ありまたは指なし手袋
+```
+
+**フィット設定:**
+```
+フィット感を密着させる: より素体に密着
+厚み: 0.001〜0.1mで調整
+```
+
+## 頂点グループ設定
+
+素体メッシュに以下の頂点グループがあると最適に動作します：
+
+| 衣装タイプ  | 推奨頂点グループ                                                    |
+| ----------- | ------------------------------------------------------------------- |
+| **パンツ**  | `hip`, `pelvis`, `腰`                                               |
+| **Tシャツ** | `chest`, `spine`, `shoulder`, `upper_arm`, `胸`, `背中`, `肩`, `腕` |
+| **ブラ**    | `chest`, `breast`, `bust`, `胸`                                     |
+| **靴下**    | `foot`, `leg`, `calf`, `ankle`, `足`, `脚`, `足首`                  |
+| **手袋**    | `hand`, `finger`, `thumb`, `手`, `指`, `親指`                       |
+
+## マテリアルカスタマイズ
+
+### **プリセット編集**
+`presets/materials.json`を編集してカスタムマテリアルを追加：
+
+```json
+{
+  "wear_type": "CUSTOM_WEAR",
+  "name": "Custom_Material",
+  "color": [1.0, 0.5, 0.2, 1.0],
+  "alpha": 1.0,
+  "specular": 0.6,
+  "roughness": 0.4
+}
+```
+
+### **対応プロパティ**
+- `color`: RGBA値（0.0-1.0）
+- `alpha`: 透明度
+- `specular`: スペキュラー強度（Blender 4.x対応）
+- `roughness`: 表面粗さ
+
+## トラブルシューティング
+
+### **ログの確認**
+詳細なエラー情報は**システムコンソール**（**ウィンドウ** → **システムコンソールを切り替え**）で確認できます。
+
+## API リファレンス
+
+### **プロパティアクセス**
 ```python
-import os
-import sys
+import bpy
 
-# 現在のスクリプトのディレクトリを取得
-script_dir = os.path.dirname(os.path.abspath(__file__))
+# プロパティグループへのアクセス
+props = bpy.context.scene.adaptive_wear_generator_pro
 
-# プロジェクトルートディレクトリを計算 (例: scripts/AdaptiveWearGeneratorPro)
-# testsディレクトリから見て2階層上のディレクトリ
-project_root = os.path.join(script_dir, os.pardir, os.pardir)
-
-# プロジェクトルートをsys.pathに追加
-sys.path.append(project_root)
-
-# これでプロジェクトルート以下のモジュールをインポートできるようになります
-# 例: from adaptive_wear_generator_pro.core import fit_engine
+# 設定値の取得
+base_obj = props.base_body
+wear_type = props.wear_type
+thickness = props.thickness
 ```
 
--   **テスト実行コマンド例**: `sys.path` の修正を行った後の Blender でのテスト実行コマンド例です。
-```bash
-"C:\Program Files\Blender Foundation\Blender 4.1\blender.exe" --background --python "M:\Data\Blender\scripts\AdaptiveWearGeneratorPro\adaptive_wear_generator_pro\tests\test_fit_engine.py"
+### **プログラマティック実行**
+```python
+# オペレーターの直接実行
+bpy.ops.awg.generate_wear()
+
+# コアモジュールの直接使用
+from adaptive_wear_generator_pro.core import mesh_generator
+garment = mesh_generator.generate_wear_mesh(base_obj, "PANTS", props)
 ```
 
-### テスト失敗時のエラー確認
+## 開発
 
-テストが失敗した場合、以下の方法でエラーの詳細を確認できます。
+### **アーキテクチャ**
+```
+adaptive_wear_generator_pro/
+├── __init__.py              # アドオン登録
+├── core/                    # コアロジック
+│   ├── mesh_generator.py    # メッシュ生成
+│   ├── fit_engine.py        # フィッティング
+│   ├── material_generator.py # マテリアル
+│   └── operators.py         # オペレーター
+├── ui/                      # ユーザーインターフェース
+├── services/                # 共通サービス
+└── presets/                 # プリセットデータ
+```
 
-1.  **テスト実行スクリプトの出力**:
-    テストをコマンドラインから実行した場合、エラーメッセージやトレースバックは標準出力に表示されます。テスト実行に使用したターミナルまたはコンソールの出力を確認してください。
-
-2.  **Blender のコンソール出力**:
-    Blender のバックグラウンド実行 (`--background` オプション) でテストを実行した場合でも、エラー情報は Blender のコンソールに出力されることがあります。Blender を GUI モードで起動し、`ウィンドウ > トグルシステムコンソール` (Windows) またはターミナル (macOS/Linux) から起動した場合はそのターミナルを確認してください。エラーメッセージや Python のトレースバックが表示されている可能性があります。
-
-これらの情報を元に、テスト失敗の原因を特定し、コードの修正を行ってください。
-
-### ファイル構造
-
-
-プロジェクトの主要なディレクトリとファイルは以下の通りです。
-
--   `adaptive_wear_generator_pro/`: アドオンのルートディレクトリ
-    -   `__init__.py`: Blender アドオンとして認識されるためのファイル
-    -   `core/`: アドオンの主要なロジックが含まれます
-        -   `blendshape_manager.py`: ブレンドシェイプの管理
-        -   `bone_rigging.py`: ボーンのリギング
-        -   `export_tools.py`: エクスポート関連ツール
-        -   `fit_engine.py`: フィットエンジンのロジック
-        -   `material_manager.py`: マテリアルの管理
-        -   `mesh_generator.py`: メッシュ生成
-        -   `operators.py`: Blender オペレーター
-        -   `properties.py`: カスタムプロパティ
-        -   `uv_tools.py`: UV 関連ツール
-        -   `weight_transfer.py`: ウェイト転送
-    -   `presets/`: プリセットデータが含まれます
-        -   `blendshape_maps.json`: ブレンドシェイプマップのプリセット
-        -   `fit_profiles.json`: フィットプロファイルのプリセット
-        -   `materials.json`: マテリアルのプリセット
-        -   `wear_types.json`: ウェアタイプのプリセット
-    -   `services/`: サービスレイヤー
-        -   `asset_manager.py`: アセット管理
-        -   `logging_service.py`: ロギングサービス
-        -   `vrc_utils.py`: VRChat 関連ユーティリティ
-    -   `tests/`: テストコード
-        -   `run_tests.py`: テスト実行スクリプト
-        -   その他の `test_*.py`: 各モジュールのテストファイル
-    -   `ui/`: ユーザーインターフェース関連
-        -   `panel_*.py`: 各パネルの UI 定義
-        -   `ui_utils.py`: UI ユーティリティ関数
--   `docs/`: ドキュメント
-    -   `basic_prompts.md`: 基本的なプロンプト例
-    -   `blender_testing_notes.md`: Blender テストに関するノート
-    -   `config.txt`: 設定ファイル例
-    -   `商品名.md`: 製品名決定に関する議事録
-    -   `失敗した知見1.txt`: 失敗した知見の記録
-    -   `要件定義書.txt`: 要件定義書
--   `package.bat`, `package.sh`: アドオンをパッケージ化するためのスクリプト
+### **コーディング規約**
+- **PEP 8**準拠のPythonコード
+- **Blender 4.4 Python API**の最新機能を活用

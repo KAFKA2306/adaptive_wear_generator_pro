@@ -1,104 +1,179 @@
-import bpy
-import json
-import os # os.path を使用するため
+# ui/panel_main.py
 
-class AWG_PT_MainPanel(bpy.types.Panel):
+import bpy
+from bpy.types import Panel
+from ..services import logging_service
+
+logger = logging_service.get_addon_logger()
+
+
+class AWG_PT_MainPanel(Panel):
     """AdaptiveWear Generator Pro メインパネル"""
+
     bl_label = "AdaptiveWear Generator"
     bl_idname = "AWG_PT_MainPanel"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = "AdaptiveWear" # タブのカテゴリ名
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "AdaptiveWear"
 
     def draw(self, context):
         layout = self.layout
         scene = context.scene
-        props = scene.adaptive_wear_generator_pro # プロパティグループを取得
 
-        # --- 基本設定 ---
-        box_base = layout.box()
-        box_base.label(text="基本設定", icon='OBJECT_DATA')
-        row = box_base.row()
+        logger.debug(f"MainPanel.draw() が呼び出されました。Context: {context}")
+
+        # プロパティの安全なアクセス
+        if not hasattr(scene, "adaptive_wear_generator_pro"):
+            logger.error(
+                "シーンプロパティ 'adaptive_wear_generator_pro' が見つかりません！"
+            )
+            layout.label(text="プロパティが見つかりません", icon="ERROR")
+            return
+
+        props = scene.adaptive_wear_generator_pro
+        logger.debug(f"取得したプロパティオブジェクト: {props}, 型: {type(props)}")
+
+        # 基本設定セクション
+        self.draw_basic_settings(layout, props)
+
+        # 衣装タイプ固有の設定
+        self.draw_type_specific_settings(layout, props)
+
+        # フィット設定セクション
+        self.draw_fit_settings(layout, props)
+
+        # 診断ツールセクション
+        self.draw_diagnostic_tools(layout, props)
+
+        # 生成ボタン
+        self.draw_generate_button(layout, props)
+
+    def draw_basic_settings(self, layout, props):
+        """基本設定セクションを描画"""
+        box = layout.box()
+        box.label(text="基本設定", icon="OBJECT_DATA")
+
+        row = box.row()
         row.prop(props, "base_body")
 
-        row = box_base.row()
+        row = box.row()
         row.prop(props, "wear_type")
 
-        # --- 追加設定 (衣装タイプに連動) ---
-        addon_prefs = context.preferences.addons.get(__package__.split('.')[0], None)
-        if addon_prefs:
-            presets_dir = os.path.join(os.path.dirname(addon_prefs.filepath), "presets")
-            wear_types_file = os.path.join(presets_dir, "wear_types.json")
+    def draw_type_specific_settings(self, layout, props):
+        """衣装タイプ固有の設定を描画"""
+        wear_type = props.wear_type
+        if wear_type == "NONE":
+            return
 
-            additional_props_to_display = []
-            if os.path.exists(wear_types_file):
-                try:
-                    with open(wear_types_file, 'r', encoding='utf-8') as f:
-                        wear_types_data = json.load(f)
-                    
-                    current_wear_type_id = props.wear_type
-                    for wear_type_info in wear_types_data:
-                        if wear_type_info.get("id") == current_wear_type_id:
-                            additional_props_to_display = wear_type_info.get("additional_props", [])
-                            break
-                except json.JSONDecodeError:
-                    layout.label(text="Error: wear_types.json is corrupted.", icon='ERROR')
-                except Exception as e: # pylint: disable=broad-except
-                    layout.label(text=f"Error loading wear_types.json: {e}", icon='ERROR')
+        # 追加設定があるかチェック
+        additional_props = self.get_additional_properties_for_wear_type(wear_type)
+        if additional_props:
+            box = layout.box()
+            box.label(text="タイプ別設定", icon="SETTINGS")
 
+            for prop_name in additional_props:
+                if hasattr(props, prop_name):
+                    box.prop(props, prop_name)
 
-            if additional_props_to_display:
-                box_additional = layout.box()
-                box_additional.label(text="追加設定", icon='SETTINGS')
-                for prop_name in additional_props_to_display:
-                    if hasattr(props, prop_name):
-                        box_additional.prop(props, prop_name)
-                    else:
-                        # 念のため、プロパティが存在しない場合のエラー表示
-                        box_additional.label(text=f"プロパティ '{prop_name}' が見つかりません。", icon='ERROR')
-            elif props.wear_type: # wear_type が選択されているが、追加プロパティがない場合
-                # 必要であれば「追加設定はありません」などのメッセージを表示
-                # layout.label(text="追加設定はありません。")
-                pass
+    def get_additional_properties_for_wear_type(self, wear_type):
+        """衣装タイプに応じた追加プロパティリストを取得"""
+        type_specific_props = {
+            "SOCKS": ["sock_length"],
+            "GLOVES": ["glove_fingers"],
+        }
+        return type_specific_props.get(wear_type, [])
 
+    def draw_fit_settings(self, layout, props):
+        """フィット設定セクションを描画"""
+        box = layout.box()
+        box.label(text="フィット設定", icon="MOD_CLOTH")
 
-        # --- フィット設定 ---
-        box_fit = layout.box()
-        box_fit.label(text="フィット設定", icon='MOD_CLOTH') # アイコン例
-        row = box_fit.row()
+        row = box.row()
         row.prop(props, "tight_fit")
-        row = box_fit.row()
+
+        row = box.row()
         row.prop(props, "thickness")
 
-        # --- 衣装生成ボタン ---
-        layout.separator() # スペーサー
+    def draw_diagnostic_tools(self, layout, props):
+        """診断ツールセクションを描画"""
+        box = layout.box()
+        box.label(text="診断ツール", icon="TOOL_SETTINGS")
+
+        row = box.row()
+        row.operator(
+            "awgp.diagnose_bones", text="ボーン・頂点グループ診断", icon="BONE_DATA"
+        )
+
+    def draw_generate_button(self, layout, props):
+        """生成ボタンを描画"""
+        layout.separator()
+
         row = layout.row(align=True)
-        row.scale_y = 1.5 # ボタンを少し大きくする
-        # オペレーターIDは仮のものを指定
-        row.operator("awg.generate_wear", text="Generate Wear", icon='PLAY')
+        row.scale_y = 1.5
+
+        # ボタンの有効/無効状態を制御
+        is_valid = self.validate_settings(props)
+        row.enabled = is_valid
+
+        # ボタンテキストを動的に変更
+        button_text = self.get_button_text(props, is_valid)
+
+        # 正しいオペレーターIDに修正
+        row.operator("awgp.generate_wear", text=button_text, icon="PLAY")
+
+        # 検証エラーがある場合は警告を表示
+        if not is_valid:
+            self.draw_validation_warnings(layout, props)
+
+    def validate_settings(self, props):
+        """設定の検証"""
+        if not props.base_body or props.base_body.type != "MESH":
+            return False
+        if props.wear_type == "NONE":
+            return False
+        return True
+
+    def get_button_text(self, props, is_valid):
+        """ボタンテキストを取得"""
+        if not is_valid:
+            if not props.base_body:
+                return "素体を選択してください"
+            if props.base_body and props.base_body.type != "MESH":
+                return "素体がメッシュではありません"
+            if props.wear_type == "NONE":
+                return "衣装タイプを選択してください"
+            return "設定を確認してください"
+
+        wear_type = props.wear_type
+
+        # 衣装タイプの表示名を取得
+        try:
+            if hasattr(props, "bl_rna") and hasattr(props.bl_rna, "properties"):
+                enum_items = props.bl_rna.properties["wear_type"].enum_items
+                if wear_type in enum_items:
+                    type_name_display = enum_items[wear_type].name
+                else:
+                    type_name_display = wear_type
+            else:
+                type_name_display = wear_type
+        except Exception as e:
+            logger.warning(f"wear_type の表示名取得に失敗: {e}")
+            type_name_display = wear_type
+
+        return f"{type_name_display}を生成"
+
+    def draw_validation_warnings(self, layout, props):
+        """検証警告を表示"""
+        if not props.base_body:
+            layout.label(text="素体メッシュを選択してください", icon="ERROR")
+        elif props.base_body.type != "MESH":
+            layout.label(
+                text="選択されたオブジェクトはメッシュではありません", icon="ERROR"
+            )
+
+        if props.wear_type == "NONE":
+            layout.label(text="衣装タイプを選択してください", icon="ERROR")
 
 
-def register():
-    try:
-        # 既に登録されている場合に備えて、一度登録解除を試みる
-        bpy.utils.unregister_class(AWG_PT_MainPanel)
-    except RuntimeError:
-        pass # まだ登録されていなければ何もしない
-    bpy.utils.register_class(AWG_PT_MainPanel)
-
-def unregister():
-    bpy.utils.unregister_class(AWG_PT_MainPanel)
-
-if __name__ == "__main__":
-    # テスト用に登録・登録解除を行う場合
-    # 既に登録されている可能性を考慮して try-except で囲む
-    try:
-        unregister() # 既存のものをアンロード試行
-    except RuntimeError: # Blenderがクラス未登録時に発生させるエラー
-        pass
-    except BaseException as ex: # pylint: disable=broad-except # 開発中のテスト用なので広範な例外を許可
-        # BaseException を捕捉することで、SystemExit や KeyboardInterrupt も捕捉対象になるが、
-        # __main__ ブロックのテストコードなので許容する。
-        # 通常のコードでは Exception を使うべき。
-        print(f"Unregistering AWG_PT_MainPanel failed (unexpected): {ex}")
-    register()
+# 登録用のクラスリスト
+classes = (AWG_PT_MainPanel,)

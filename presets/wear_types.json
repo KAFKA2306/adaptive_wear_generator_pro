@@ -1,26 +1,42 @@
 [
-  {
-    "id": "Socks",
-    "name": "Socks",
-    "description": "Generate socks.",
-    "additional_props": ["sock_length"]
-  },
-  {
-    "id": "Gloves",
-    "name": "Gloves",
-    "description": "Generate gloves.",
-    "additional_props": ["glove_fingers"]
-  },
-  {
-    "id": "Pants",
-    "name": "Pants",
-    "description": "Generate pants.",
-    "additional_props": []
-  },
-  {
-    "id": "Tshirt",
-    "name": "T-shirt",
-    "description": "Generate a T-shirt.",
-    "additional_props": []
-  }
+    {
+        "id": "PANTS",
+        "name": "パンツ",
+        "additional_props": [],
+        "mesh_settings": {
+            "vertex_groups": ["hip", "腰"],
+            "selection_threshold": 0.5
+        }
+    },
+    {
+        "id": "T_SHIRT",
+        "name": "Tシャツ",
+        "additional_props": [],
+        "mesh_settings": {
+            "vertex_groups": ["chest", "spine", "shoulder", "upper_arm", "胴体", "肩", "腕"],
+            "selection_threshold": 0.1
+        }
+    },
+    {
+        "id": "SOCKS",
+        "name": "靴下",
+        "additional_props": [
+            "sock_length"
+        ],
+        "mesh_settings": {
+            "vertex_groups": ["foot", "leg", "足", "脚"],
+            "selection_threshold": 0.1
+        }
+    },
+    {
+        "id": "GLOVES",
+        "name": "手袋",
+        "additional_props": [
+            "glove_fingers"
+        ],
+        "mesh_settings": {
+            "vertex_groups": ["hand", "finger", "手", "指"],
+            "selection_threshold": 0.1
+        }
+    }
 ]

@@ -1,352 +1,404 @@
+# core/mesh_generator.py
+
 import bpy
-from adaptive_wear_generator_pro.services.logging_service import log_info, log_warning, log_error
+import bmesh
+from . import bone_utils
+from ..services import logging_service
 
-# このファイル内の既存の関数 (例)
-def find_vertex_group_by_keyword(obj, keywords):
-    """指定されたキーワードに一致する頂点グループ名を見つける"""
-    if not obj or obj.type != 'MESH':
-        return []
-    
-    found_groups = []
-    for keyword in keywords:
-        for vg in obj.vertex_groups:
-            if keyword.lower() in vg.name.lower():
-                found_groups.append(vg.name)
-    if not found_groups:
-        log_warning(f"オブジェクト '{obj.name}' にキーワード '{keywords}' に一致する頂点グループが見つかりませんでした。")
-    return list(set(found_groups)) # 重複を削除して返す
 
-def create_underwear_pants_mesh(base_body, vg_names, tight_fit, thickness):
-    """パンツメッシュを作成する (既存の関数の仮のシグネチャ)"""
-    log_info(f"create_underwear_pants_mesh が呼び出されました: body={base_body.name if base_body else 'None'}, vg_names={vg_names}, tight_fit={tight_fit}, thickness={thickness}")
-    # ダミーのメッシュオブジェクトを作成して返す
-    bpy.ops.mesh.primitive_cube_add(size=0.5)
-    pants_mesh = bpy.context.object
-    pants_mesh.name = "Generated_Pants"
-    log_info(f"ダミーのパンツメッシュ '{pants_mesh.name}' を作成しました。")
-    return pants_mesh
+def generate_wear_mesh(base_obj, wear_type, fit_settings):
+    """指定された素体と衣装タイプに基づいてメッシュを生成するメイン関数"""
+    if base_obj is None or base_obj.type != "MESH":
+        logging_service.log_error("有効な素体オブジェクトが指定されていません")
+        return None
 
-def create_underwear_bra_mesh(base_body, vg_names, tight_fit, thickness):
-    """ブラメッシュを作成する (既存の関数の仮のシグネチャ)"""
-    log_info(f"create_underwear_bra_mesh が呼び出されました: body={base_body.name if base_body else 'None'}, vg_names={vg_names}, tight_fit={tight_fit}, thickness={thickness}")
-    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.3)
-    bra_mesh = bpy.context.object
-    bra_mesh.name = "Generated_Bra"
-    log_info(f"ダミーのブラメッシュ '{bra_mesh.name}' を作成しました。")
-    return bra_mesh
+    logging_service.log_info(f"{wear_type} メッシュ生成開始: 素体={base_obj.name}")
 
-def create_socks_mesh(base_body, vg_names, tight_fit, thickness, length):
-    """靴下メッシュを作成する (既存の関数の仮のシグネチャ)"""
-    log_info(f"create_socks_mesh が呼び出されました: body={base_body.name if base_body else 'None'}, vg_names={vg_names}, tight_fit={tight_fit}, thickness={thickness}, length={length}")
-    bpy.ops.mesh.primitive_cylinder_add(radius=0.2, depth=length)
-    socks_mesh = bpy.context.object
-    socks_mesh.name = "Generated_Socks"
-    log_info(f"ダミーの靴下メッシュ '{socks_mesh.name}' を作成しました。")
-    return socks_mesh
+    generator_functions = {
+        "PANTS": create_pants_mesh,
+        "BRA": create_bra_mesh,
+        "T_SHIRT": create_tshirt_mesh,
+        "SOCKS": create_socks_mesh,
+        "GLOVES": create_gloves_mesh,
+    }
 
-def create_gloves_mesh(base_body, vg_names, tight_fit, thickness, fingered):
-    """手袋メッシュを作成する (既存の関数の仮のシグネチャ)"""
-    log_info(f"create_gloves_mesh が呼び出されました: body={base_body.name if base_body else 'None'}, vg_names={vg_names}, tight_fit={tight_fit}, thickness={thickness}, fingered={fingered}")
-    bpy.ops.mesh.primitive_ico_sphere_add(radius=0.25)
-    gloves_mesh = bpy.context.object
-    gloves_mesh.name = "Generated_Gloves"
-    log_info(f"ダミーの手袋メッシュ '{gloves_mesh.name}' を作成しました。")
-    return gloves_mesh
-
-def create_swimsuit_onesie_mesh(base_body, vg_names, tight_fit, thickness):
-    """ワンピース水着メッシュを作成する (既存の関数の仮のシグネチャ)"""
-    log_info(f"create_swimsuit_onesie_mesh が呼び出されました: body={base_body.name if base_body else 'None'}, vg_names={vg_names}, tight_fit={tight_fit}, thickness={thickness}")
-    bpy.ops.mesh.primitive_cube_add(size=0.6)
-    onesie_mesh = bpy.context.object
-    onesie_mesh.name = "Generated_Onesie"
-    log_info(f"ダミーのワンピース水着メッシュ '{onesie_mesh.name}' を作成しました。")
-    return onesie_mesh
-
-def create_swimsuit_bikini_mesh(base_body, vg_names, tight_fit, thickness):
-    """ビキニメッシュを作成する (既存の関数の仮のシグネチャ)"""
-    log_info(f"create_swimsuit_bikini_mesh が呼び出されました: body={base_body.name if base_body else 'None'}, vg_names={vg_names}, tight_fit={tight_fit}, thickness={thickness}")
-    # ビキニはトップとボトムの2つの部分で構成されることが多いので、2つのオブジェクトを生成
-    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.2, location=(0, 0, 0.3))
-    bikini_top = bpy.context.object
-    bikini_top.name = "Generated_Bikini_Top"
-    bpy.ops.mesh.primitive_cube_add(size=0.3, location=(0, 0, -0.3))
-    bikini_bottom = bpy.context.object
-    bikini_bottom.name = "Generated_Bikini_Bottom"
-    # この例では、最後に作成されたオブジェクト (ボトム) を返す。
-    # 実際には、複数のオブジェクトをリストで返すか、結合するかなどの処理が必要。
-    log_info(f"ダミーのビキニメッシュ '{bikini_top.name}' と '{bikini_bottom.name}' を作成しました。")
-    return bikini_bottom 
-
-def create_tights_mesh(base_body, vg_names, tight_fit, thickness):
-    """タイツメッシュを作成する (既存の関数の仮のシグネチャ)"""
-    log_info(f"create_tights_mesh が呼び出されました: body={base_body.name if base_body else 'None'}, vg_names={vg_names}, tight_fit={tight_fit}, thickness={thickness}")
-    bpy.ops.mesh.primitive_cylinder_add(radius=0.25, depth=1.0)
-    tights_mesh = bpy.context.object
-    tights_mesh.name = "Generated_Tights"
-    log_info(f"ダミーのタイツメッシュ '{tights_mesh.name}' を作成しました。")
-    return tights_mesh
-
-# --- 新しいプレースホルダー関数 ---
-def generate_initial_wear_mesh(wear_type: str, context, additional_settings: dict = None) -> bpy.types.Object or None:
-    """
-    指定された wear_type に基づいて初期メッシュを生成する。
-    additional_settings を使用して、特定の衣装タイプの生成を調整する。
-    """
-    if additional_settings is None:
-        additional_settings = {} # ガード節: additional_settingsがNoneの場合、空の辞書で初期化
-        
-    log_info(f"generate_initial_wear_mesh が呼び出されました。wear_type: {wear_type}, additional_settings: {additional_settings}")
-    obj = None
+    generator_func = generator_functions.get(wear_type)
+    if not generator_func:
+        logging_service.log_error(f"未対応の衣装タイプ '{wear_type}' が指定されました")
+        return None
 
     try:
-        if wear_type == "Pants":
-            # 簡単なズボンの形状 (2つの円柱を組み合わせる)
-            # 左足
-            bpy.ops.mesh.primitive_cylinder_add(
-                vertices=16,
-                radius=0.15,
-                depth=0.8,
-                enter_editmode=False,
-                align='WORLD',
-                location=(-0.15, 0, 0.4), # Y軸方向に少しずらす
-                scale=(1, 1, 1)
+        generated_mesh_obj = generator_func(base_obj, fit_settings)
+        if generated_mesh_obj:
+            logging_service.log_info(
+                f"{wear_type} メッシュ生成完了: {generated_mesh_obj.name}"
             )
-            left_leg = context.object
-            left_leg.name = "Temp_LeftLeg"
+        return generated_mesh_obj
+    except Exception as e:
+        logging_service.log_error(f"{wear_type} メッシュ生成エラー: {str(e)}")
+        return None
 
-            # 右足
-            bpy.ops.mesh.primitive_cylinder_add(
-                vertices=16,
-                radius=0.15,
-                depth=0.8,
-                enter_editmode=False,
-                align='WORLD',
-                location=(0.15, 0, 0.4), # Y軸方向に少しずらす
-                scale=(1, 1, 1)
-            )
-            right_leg = context.object
-            right_leg.name = "Temp_RightLeg"
-            
-            # 股部分の直方体
-            bpy.ops.mesh.primitive_cube_add(
-                size=1,
-                enter_editmode=False,
-                align='WORLD',
-                location=(0, 0, 0.85), # 脚の上部に来るように調整
-                scale=(0.35, 0.2, 0.1) # 幅、奥行き、高さ
-            )
-            crotch_cube = context.object
-            crotch_cube.name = "Temp_Crotch"
 
-            # 結合
-            bpy.ops.object.select_all(action='DESELECT')
-            left_leg.select_set(True)
-            right_leg.select_set(True)
-            crotch_cube.select_set(True)
-            context.view_layer.objects.active = crotch_cube # 結合のベースオブジェクト
-            bpy.ops.object.join()
-            
-            obj = context.object
-            obj.name = "GeneratedPants"
-            # 原点をジオメトリの中心に移動 (任意、フィット処理で調整されるため必須ではない)
-            # bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
-            # obj.location = (0,0,0) # ワールド原点に再配置
+def create_pants_mesh(base_obj, fit_settings):
+    """minimal_value_productを参考にしたパンツメッシュ生成"""
+    logging_service.log_info(f"パンツメッシュ生成開始: 素体={base_obj.name}")
 
-            log_info(f"初期メッシュ '{obj.name}' を生成しました。")
+    # 腰部の頂点グループを柔軟に検索
+    hip_patterns = ["hip", "hips", "pelvis", "waist", "腰"]
+    hip_vg = bone_utils.find_vertex_group_by_patterns(base_obj, hip_patterns)
 
-        elif wear_type == "Bra":
-            # 簡単なブラの形状 (2つの球を変形させて組み合わせる)
-            # 左カップ
-            bpy.ops.mesh.primitive_uv_sphere_add(
-                segments=16,
-                ring_count=8,
-                radius=0.2,
-                enter_editmode=False,
-                align='WORLD',
-                location=(-0.15, -0.05, 0.6), # 少し前、胸の位置
-                scale=(1, 0.8, 0.6) # X, Y, Zスケールで潰す
-            )
-            left_cup = context.object
-            left_cup.name = "Temp_LeftCup"
-            # Y軸周りに少し回転
-            left_cup.rotation_euler[1] = 0.2 # Y軸周りに回転
+    if hip_vg is None:
+        logging_service.log_error("腰部の頂点グループが見つかりません")
+        return None
 
-            # 右カップ
-            bpy.ops.mesh.primitive_uv_sphere_add(
-                segments=16,
-                ring_count=8,
-                radius=0.2,
-                enter_editmode=False,
-                align='WORLD',
-                location=(0.15, -0.05, 0.6),
-                scale=(1, 0.8, 0.6)
-            )
-            right_cup = context.object
-            right_cup.name = "Temp_RightCup"
-            right_cup.rotation_euler[1] = -0.2 # Y軸周りに回転
+    logging_service.log_info(f"腰部頂点グループを使用: {hip_vg.name}")
 
-            # 結合 (任意、ここでは別々のままにしておくことも考えられる)
-            # bpy.ops.object.select_all(action='DESELECT')
-            # left_cup.select_set(True)
-            # right_cup.select_set(True)
-            # context.view_layer.objects.active = left_cup
-            # bpy.ops.object.join()
-            # obj = context.object
-            # obj.name = "GeneratedBra"
-            # この例では最後に作成された右カップを返す (結合しない場合)
-            # 実際にはストラップなども考慮するが、ここではカップのみ
-            
-            # 簡単のため、結合せずに最後に作成されたものを返すか、あるいは片方だけを返す
-            # もし結合するなら上記コメントアウトを解除
-            # ここでは、より単純に1つのオブジェクトとして扱うため、1つのトーラスを変形させる
-            bpy.ops.object.select_all(action='DESELECT')
-            if left_cup: left_cup.select_set(True); bpy.ops.object.delete()
-            if right_cup: right_cup.select_set(True); bpy.ops.object.delete()
+    # メッシュを複製
+    mesh = base_obj.data.copy()
+    pants_obj = bpy.data.objects.new(base_obj.name + "_pants", mesh)
+    bpy.context.collection.objects.link(pants_obj)
 
-            bpy.ops.mesh.primitive_torus_add(
-                major_radius=0.25,
-                minor_radius=0.08,
-                major_segments=24,
-                minor_segments=12,
-                align='WORLD',
-                location=(0, -0.05, 0.6) # やや前、胸の高さ
-            )
-            obj = context.object
-            # X軸方向に潰し、Z軸方向に少し伸ばす
-            obj.scale = (1.3, 0.7, 0.9)
-            # X軸周りに少し傾ける
-            obj.rotation_euler[0] = 0.3 # X軸周りに回転
-            bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    try:
+        # bmeshを使用して頂点を処理
+        bm = bmesh.new()
+        bm.from_mesh(mesh)
 
-            obj.name = "GeneratedBra"
-            log_info(f"初期メッシュ '{obj.name}' を生成しました。")
+        # デフォームレイヤーを取得
+        deform_layer = bm.verts.layers.deform.verify()
 
-        elif wear_type == "Socks":
-            sock_length = additional_settings.get("sock_length", 0.5) # デフォルト値 0.5
-            log_info(f"Socks generation: sock_length = {sock_length}")
-            # 簡単な靴下の形状 (円柱を変形)
-            bpy.ops.mesh.primitive_cylinder_add(
-                vertices=16,
-                radius=0.08,
-                depth=sock_length, # sock_length を使用
-                enter_editmode=False,
-                align='WORLD',
-                location=(0, 0, sock_length / 2), # 位置も長さに応じて調整
-                scale=(1, 1, 1)
-            )
-            obj = context.object
-            obj.name = "GeneratedSocks"
-            log_info(f"初期メッシュ '{obj.name}' を生成しました (長さ: {sock_length})。")
+        # 腰部頂点グループのウェイトが高い頂点だけを残す
+        hip_group_index = hip_vg.index
+        selected_verts = []
 
-        elif wear_type == "Gloves":
-            glove_fingers = additional_settings.get("glove_fingers", False) # デフォルト値 False
-            log_info(f"Gloves generation: glove_fingers = {glove_fingers}")
-            
-            if glove_fingers:
-                # 指あり手袋 (簡単な形状: 複数の小さな円柱を配置するなど)
-                # ここでは、より複雑な形状の代わりに、ログ出力と基本的な形状で示す
-                log_info("指あり手袋の生成を試みます (現在はプレースホルダー)。")
-                # プレースホルダーとして、少し複雑な形状（例：細長い立方体をいくつか組み合わせる）
-                # 手のひら部分
-                bpy.ops.mesh.primitive_cube_add(size=1, location=(0,0,0.3))
-                palm = context.object
-                palm.name = "Temp_Palm"
-                palm.scale = (0.15, 0.05, 0.2) # X, Y, Z
-                bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+        for vert in bm.verts:
+            if hip_group_index in vert[deform_layer]:
+                weight = vert[deform_layer][hip_group_index]
+                if weight > 0.3:  # 閾値は調整可能
+                    selected_verts.append(vert)
 
-                # 指のプレースホルダー (5本の指)
-                finger_positions = [
-                    (-0.06, 0.0, 0.5), (-0.03, 0.0, 0.52), (0.0, 0.0, 0.53),
-                    (0.03, 0.0, 0.52), (0.06, 0.0, 0.5)
-                ]
-                fingers = []
-                for i, pos in enumerate(finger_positions):
-                    bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=0.02, depth=0.15, location=pos)
-                    finger = context.object
-                    finger.name = f"Temp_Finger_{i+1}"
-                    fingers.append(finger)
-                
-                # 手のひらと指を結合
-                bpy.ops.object.select_all(action='DESELECT')
-                palm.select_set(True)
-                for f in fingers:
-                    f.select_set(True)
-                context.view_layer.objects.active = palm
-                bpy.ops.object.join()
-                obj = context.object
-                obj.name = "GeneratedGloves_Fingered"
+        # 選択されなかった頂点を削除
+        verts_to_remove = [v for v in bm.verts if v not in selected_verts]
+        bmesh.ops.delete(bm, geom=verts_to_remove, context="VERTS")
 
-            else:
-                # 指なし手袋 (ミトン形状: 1つの大きな形状)
-                log_info("指なし手袋（ミトン）の生成を試みます。")
-                bpy.ops.mesh.primitive_cube_add(size=1, location=(0,0,0.3))
-                obj = context.object
-                obj.scale = (0.2, 0.3, 0.4) # ミトンらしい形にスケール
-                bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
-                # 親指部分の簡単な追加
-                bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=0.05, depth=0.1, location=(-0.1, 0.0, 0.35))
-                thumb_placeholder = context.object
-                thumb_placeholder.name = "Temp_Thumb"
-                thumb_placeholder.rotation_euler[1] = 0.5 # Y軸周りに少し回転
+        # 軽く押し出して厚みを作る
+        for vert in bm.verts:
+            vert.co += vert.normal * fit_settings.thickness
 
-                # ミトン本体と親指を結合
-                bpy.ops.object.select_all(action='DESELECT')
-                obj.select_set(True)
-                thumb_placeholder.select_set(True)
-                context.view_layer.objects.active = obj
-                bpy.ops.object.join()
-                obj.name = "GeneratedGloves_Mitten"
-            
-            if obj:
-                log_info(f"初期メッシュ '{obj.name}' を生成しました。")
-            else:
-                # このelseブロックは、上記のif/elseのどちらかでobjが設定されるため、通常は到達しない
-                log_warning("手袋のメッシュ生成に失敗しました（予期せぬエラー）。")
-                bpy.ops.mesh.primitive_cube_add(size=0.5) # フォールバック
-                obj = context.object
-                obj.name = "GeneratedGloves_Fallback"
-                log_info(f"フォールバックメッシュ '{obj.name}' を生成しました。")
+        # メッシュに適用
+        bm.to_mesh(mesh)
+        bm.free()
 
-        else:
-            log_warning(f"未対応の wear_type: {wear_type} または追加設定が未定義。汎用的な立方体を生成します。")
-            bpy.ops.mesh.primitive_cube_add(
-                size=0.5,
-                enter_editmode=False,
-                align='WORLD',
-                location=(0, 0, 0),
-                scale=(1,1,1)
-            )
-            obj = context.object
-            obj.name = f"Generated_Unknown_{wear_type}"
-            log_info(f"汎用メッシュ '{obj.name}' を生成しました。")
-            # この場合、Noneを返すか、この汎用オブジェクトを返すかは仕様による
-            # 要件では「None を返すか、汎用的な立方体などを生成」なので、ここでは生成したものを返す
-        
-        if obj:
-            # 原点とスケールの確認
-            obj.location = (0, 0, 0)
-            obj.scale = (1, 1, 1)
-            # 既存のトランスフォームを適用（特にスケールや回転をプリミティブ生成時に行った場合）
-            bpy.ops.object.select_all(action='DESELECT')
-            obj.select_set(True)
-            context.view_layer.objects.active = obj
-            bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-            log_info(f"オブジェクト '{obj.name}' の原点を (0,0,0) に、スケールを (1,1,1) に設定し、トランスフォームを適用しました。")
-            return obj
-        else:
-            # このパスは通常通らないはずだが、念のため
-            log_warning(f"wear_type: {wear_type} のメッシュオブジェクトが生成されませんでした。")
+        # スムーズシェード
+        pants_obj.select_set(True)
+        bpy.context.view_layer.objects.active = pants_obj
+        bpy.ops.object.shade_smooth()
+
+        logging_service.log_info("パンツメッシュ生成完了")
+        return pants_obj
+
+    except Exception as e:
+        logging_service.log_error(f"パンツメッシュ生成エラー: {str(e)}")
+        if pants_obj and pants_obj.name in bpy.data.objects:
+            bpy.data.objects.remove(pants_obj, do_unlink=True)
+        return None
+
+
+def create_gloves_mesh(base_obj, fit_settings):
+    """手袋メッシュ生成（画像のボーン構造に対応）"""
+    logging_service.log_info(f"手袋メッシュ生成開始: 素体={base_obj.name}")
+
+    # 手関連の頂点グループを検索
+    left_hand, right_hand = bone_utils.find_hand_vertex_groups(base_obj)
+
+    if not left_hand and not right_hand:
+        logging_service.log_error("手の頂点グループが見つかりません")
+        # 利用可能な頂点グループをログ出力
+        if base_obj.vertex_groups:
+            available_groups = [vg.name for vg in base_obj.vertex_groups]
+            logging_service.log_info(f"利用可能な頂点グループ: {available_groups}")
+        return None
+
+    # 手関連の追加頂点グループも検索（指など）
+    hand_related_groups = bone_utils.find_vertex_groups_by_type(base_obj, "hand")
+
+    # メッシュを複製
+    mesh = base_obj.data.copy()
+    gloves_obj = bpy.data.objects.new(base_obj.name + "_gloves", mesh)
+    bpy.context.collection.objects.link(gloves_obj)
+
+    try:
+        # bmeshを使用して頂点を処理
+        bm = bmesh.new()
+        bm.from_mesh(mesh)
+
+        # デフォームレイヤーを取得
+        deform_layer = bm.verts.layers.deform.verify()
+
+        # 手関連の頂点を選択
+        selected_verts = []
+        target_groups = []
+
+        if left_hand:
+            target_groups.append(left_hand)
+        if right_hand:
+            target_groups.append(right_hand)
+
+        # 追加の手関連グループも含める
+        target_groups.extend(hand_related_groups)
+
+        for vert in bm.verts:
+            for vg in target_groups:
+                if vg.index in vert[deform_layer]:
+                    weight = vert[deform_layer][vg.index]
+                    if weight > 0.1:  # 手袋は低い閾値で広範囲をカバー
+                        selected_verts.append(vert)
+                        break
+
+        if not selected_verts:
+            logging_service.log_error("手袋生成用の頂点が選択されませんでした")
+            bm.free()
+            bpy.data.objects.remove(gloves_obj, do_unlink=True)
             return None
 
-    except Exception as e: # pylint: disable=broad-except
-        log_error(f"generate_initial_wear_mesh でエラーが発生しました (wear_type: {wear_type}): {e}")
-        # 作成途中のオブジェクトが残っている可能性があるので削除
-        if obj and obj.name in bpy.data.objects:
-            bpy.data.objects.remove(obj, do_unlink=True)
-        # 選択されている可能性のある一時オブジェクトも削除
-        if "Temp_LeftLeg" in bpy.data.objects: bpy.data.objects.remove(bpy.data.objects["Temp_LeftLeg"], do_unlink=True)
-        if "Temp_RightLeg" in bpy.data.objects: bpy.data.objects.remove(bpy.data.objects["Temp_RightLeg"], do_unlink=True)
-        if "Temp_Crotch" in bpy.data.objects: bpy.data.objects.remove(bpy.data.objects["Temp_Crotch"], do_unlink=True)
-        if "Temp_LeftCup" in bpy.data.objects: bpy.data.objects.remove(bpy.data.objects["Temp_LeftCup"], do_unlink=True)
-        if "Temp_RightCup" in bpy.data.objects: bpy.data.objects.remove(bpy.data.objects["Temp_RightCup"], do_unlink=True)
+        # 選択されなかった頂点を削除
+        verts_to_remove = [v for v in bm.verts if v not in selected_verts]
+        bmesh.ops.delete(bm, geom=verts_to_remove, context="VERTS")
+
+        # 指なし手袋の処理
+        if hasattr(fit_settings, "glove_fingers") and not fit_settings.glove_fingers:
+            # 指部分を削除（実装は必要に応じて拡張）
+            logging_service.log_info("指なし手袋モード（基本実装）")
+
+        # 厚みを追加
+        for vert in bm.verts:
+            vert.co += vert.normal * fit_settings.thickness
+
+        # メッシュに適用
+        bm.to_mesh(mesh)
+        bm.free()
+
+        # スムーズシェード
+        gloves_obj.select_set(True)
+        bpy.context.view_layer.objects.active = gloves_obj
+        bpy.ops.object.shade_smooth()
+
+        logging_service.log_info("手袋メッシュ生成完了")
+        return gloves_obj
+
+    except Exception as e:
+        logging_service.log_error(f"手袋メッシュ生成エラー: {str(e)}")
+        if gloves_obj and gloves_obj.name in bpy.data.objects:
+            bpy.data.objects.remove(gloves_obj, do_unlink=True)
         return None
+
+
+def create_bra_mesh(base_obj, fit_settings):
+    """ブラメッシュ生成"""
+    logging_service.log_info(f"ブラメッシュ生成開始: 素体={base_obj.name}")
+
+    # 胸部の頂点グループを検索
+    chest_groups = bone_utils.find_vertex_groups_by_type(base_obj, "chest")
+
+    if not chest_groups:
+        logging_service.log_warning(
+            "胸部の頂点グループが見つかりません。デフォルト処理を使用します。"
+        )
+
+    # メッシュを複製
+    mesh = base_obj.data.copy()
+    bra_obj = bpy.data.objects.new(base_obj.name + "_bra", mesh)
+    bpy.context.collection.objects.link(bra_obj)
+
+    try:
+        # bmeshを使用して頂点を処理
+        bm = bmesh.new()
+        bm.from_mesh(mesh)
+
+        if chest_groups:
+            # 胸部頂点グループを使用
+            deform_layer = bm.verts.layers.deform.verify()
+            selected_verts = []
+
+            for vert in bm.verts:
+                for vg in chest_groups:
+                    if vg.index in vert[deform_layer]:
+                        weight = vert[deform_layer][vg.index]
+                        if weight > 0.1:
+                            selected_verts.append(vert)
+                            break
+
+            # 選択されなかった頂点を削除
+            verts_to_remove = [v for v in bm.verts if v not in selected_verts]
+            bmesh.ops.delete(bm, geom=verts_to_remove, context="VERTS")
+        else:
+            # デフォルト：Z軸上半分の簡易選択
+            avg_z = sum(v.co.z for v in bm.verts) / len(bm.verts)
+            verts_to_remove = [v for v in bm.verts if v.co.z < avg_z]
+            bmesh.ops.delete(bm, geom=verts_to_remove, context="VERTS")
+
+        # 厚みを追加
+        for vert in bm.verts:
+            vert.co += vert.normal * fit_settings.thickness
+
+        # メッシュに適用
+        bm.to_mesh(mesh)
+        bm.free()
+
+        # スムーズシェード
+        bra_obj.select_set(True)
+        bpy.context.view_layer.objects.active = bra_obj
+        bpy.ops.object.shade_smooth()
+
+        logging_service.log_info("ブラメッシュ生成完了")
+        return bra_obj
+
+    except Exception as e:
+        logging_service.log_error(f"ブラメッシュ生成エラー: {str(e)}")
+        if bra_obj and bra_obj.name in bpy.data.objects:
+            bpy.data.objects.remove(bra_obj, do_unlink=True)
+        return None
+
+
+def create_tshirt_mesh(base_obj, fit_settings):
+    """Tシャツメッシュ生成"""
+    logging_service.log_info(f"Tシャツメッシュ生成開始: 素体={base_obj.name}")
+
+    # 胴体・腕部の頂点グループを検索
+    torso_groups = bone_utils.find_vertex_groups_by_type(base_obj, "chest")
+    arm_groups = bone_utils.find_vertex_groups_by_type(base_obj, "arm")
+
+    all_groups = torso_groups + arm_groups
+
+    if not all_groups:
+        logging_service.log_warning(
+            "Tシャツ用の頂点グループが見つかりません。デフォルト処理を使用します。"
+        )
+
+    # メッシュを複製
+    mesh = base_obj.data.copy()
+    tshirt_obj = bpy.data.objects.new(base_obj.name + "_tshirt", mesh)
+    bpy.context.collection.objects.link(tshirt_obj)
+
+    try:
+        # bmeshを使用して頂点を処理
+        bm = bmesh.new()
+        bm.from_mesh(mesh)
+
+        if all_groups:
+            # 頂点グループを使用
+            deform_layer = bm.verts.layers.deform.verify()
+            selected_verts = []
+
+            for vert in bm.verts:
+                for vg in all_groups:
+                    if vg.index in vert[deform_layer]:
+                        weight = vert[deform_layer][vg.index]
+                        if weight > 0.1:
+                            selected_verts.append(vert)
+                            break
+
+            # 選択されなかった頂点を削除
+            verts_to_remove = [v for v in bm.verts if v not in selected_verts]
+            bmesh.ops.delete(bm, geom=verts_to_remove, context="VERTS")
+        else:
+            # デフォルト：上半身の簡易選択
+            avg_z = sum(v.co.z for v in bm.verts) / len(bm.verts)
+            verts_to_remove = [v for v in bm.verts if v.co.z < avg_z * 0.5]
+            bmesh.ops.delete(bm, geom=verts_to_remove, context="VERTS")
+
+        # 厚みを追加
+        for vert in bm.verts:
+            vert.co += vert.normal * fit_settings.thickness
+
+        # メッシュに適用
+        bm.to_mesh(mesh)
+        bm.free()
+
+        # スムーズシェード
+        tshirt_obj.select_set(True)
+        bpy.context.view_layer.objects.active = tshirt_obj
+        bpy.ops.object.shade_smooth()
+
+        logging_service.log_info("Tシャツメッシュ生成完了")
+        return tshirt_obj
+
+    except Exception as e:
+        logging_service.log_error(f"Tシャツメッシュ生成エラー: {str(e)}")
+        if tshirt_obj and tshirt_obj.name in bpy.data.objects:
+            bpy.data.objects.remove(tshirt_obj, do_unlink=True)
+        return None
+
+
+def create_socks_mesh(base_obj, fit_settings):
+    """靴下メッシュ生成"""
+    logging_service.log_info(f"靴下メッシュ生成開始: 素体={base_obj.name}")
+
+    # 足部の頂点グループを検索
+    foot_groups = bone_utils.find_vertex_groups_by_type(base_obj, "foot")
+    leg_groups = bone_utils.find_vertex_groups_by_type(base_obj, "leg")
+
+    all_groups = foot_groups + leg_groups
+
+    if not all_groups:
+        logging_service.log_error("靴下用の頂点グループが見つかりません")
+        return None
+
+    # メッシュを複製
+    mesh = base_obj.data.copy()
+    socks_obj = bpy.data.objects.new(base_obj.name + "_socks", mesh)
+    bpy.context.collection.objects.link(socks_obj)
+
+    try:
+        # bmeshを使用して頂点を処理
+        bm = bmesh.new()
+        bm.from_mesh(mesh)
+
+        # 頂点グループを使用
+        deform_layer = bm.verts.layers.deform.verify()
+        selected_verts = []
+
+        for vert in bm.verts:
+            for vg in all_groups:
+                if vg.index in vert[deform_layer]:
+                    weight = vert[deform_layer][vg.index]
+                    # 靴下の長さを考慮した重み調整
+                    min_weight = 0.1 * fit_settings.sock_length
+                    if weight > min_weight:
+                        selected_verts.append(vert)
+                        break
+
+        if not selected_verts:
+            logging_service.log_error("靴下生成用の頂点が選択されませんでした")
+            bm.free()
+            bpy.data.objects.remove(socks_obj, do_unlink=True)
+            return None
+
+        # 選択されなかった頂点を削除
+        verts_to_remove = [v for v in bm.verts if v not in selected_verts]
+        bmesh.ops.delete(bm, geom=verts_to_remove, context="VERTS")
+
+        # 厚みを追加
+        for vert in bm.verts:
+            vert.co += vert.normal * fit_settings.thickness
+
+        # メッシュに適用
+        bm.to_mesh(mesh)
+        bm.free()
+
+        # スムーズシェード
+        socks_obj.select_set(True)
+        bpy.context.view_layer.objects.active = socks_obj
+        bpy.ops.object.shade_smooth()
+
+        logging_service.log_info("靴下メッシュ生成完了")
+        return socks_obj
+
+    except Exception as e:
+        logging_service.log_error(f"靴下メッシュ生成エラー: {str(e)}")
+        if socks_obj and socks_obj.name in bpy.data.objects:
+            bpy.data.objects.remove(socks_obj, do_unlink=True)
+        return None
+
+
+# 登録用のクラスリスト（空のタプル）
+classes = ()
