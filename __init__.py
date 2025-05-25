@@ -1,168 +1,124 @@
-# __init__.py
-
 bl_info = {
     "name": "AdaptiveWear Generator Pro",
     "author": "AdaptiveWear Team",
-    "version": (1, 0, 0),
+    "version": (4, 0, 0),
     "blender": (4, 1, 0),
     "location": "View3D > Sidebar > AdaptiveWear",
-    "description": "AI駆動の密着衣装自動生成アドオン",
+    "description": "AI駆動の高品質密着衣装自動生成アドオン（完全統合版）",
     "category": "Object",
 }
 
 import bpy
-import importlib
-import logging
 from bpy.props import PointerProperty
-from bpy.types import Scene
-
-# モジュールインポート
-MODULE_NAMES = (
-    "services.logging_service",
-    "core.properties",
-    "core.bone_utils",
-    "core.mesh_generator",
-    "core.operators",
-    "core.diagnostic_operators",
-    "ui.panel_main",
-)
-
-# 登録されたクラスを保持するためのグローバル変数
-_registered_classes = []
-
-
-def register_modules():
-    """モジュールの動的インポートと登録"""
-    global _registered_classes
-    _registered_classes.clear()
-
-    for module_name_rel in MODULE_NAMES:
-        try:
-            module = importlib.import_module(f".{module_name_rel}", package=__package__)
-            importlib.reload(module)
-
-            if hasattr(module, "classes") and isinstance(module.classes, tuple):
-                for cls in module.classes:
-                    try:
-                        bpy.utils.register_class(cls)
-                        _registered_classes.append(cls)
-                        print(f"AdaptiveWear: クラス '{cls.__name__}' を登録しました")
-                    except Exception as e:
-                        print(
-                            f"AdaptiveWear: クラス '{cls.__name__}' の登録に失敗 - {str(e)}"
-                        )
-            else:
-                print(
-                    f"AdaptiveWear: モジュール '{module_name_rel}' に 'classes' タプルが見つかりません"
-                )
-
-            print(f"AdaptiveWear: モジュール '{module_name_rel}' の登録処理完了")
-
-        except ImportError as e:
-            print(
-                f"AdaptiveWear: モジュール '{module_name_rel}' のインポートに失敗 - {str(e)}"
-            )
-        except Exception as e:
-            print(
-                f"AdaptiveWear: モジュール '{module_name_rel}' の登録中に予期せぬエラー - {str(e)}"
-            )
-
-
-def unregister_modules():
-    """モジュールの登録解除"""
-    global _registered_classes
-    for cls in reversed(_registered_classes):
-        try:
-            bpy.utils.unregister_class(cls)
-        except RuntimeError:
-            print(
-                f"AdaptiveWear: クラス '{cls.__name__}' の登録解除中にランタイムエラー（無視）"
-            )
-        except Exception as e:
-            print(
-                f"AdaptiveWear: クラス '{cls.__name__}' の登録解除中に予期せぬエラー - {str(e)}"
-            )
-    _registered_classes.clear()
-    print("AdaptiveWear: 全モジュールのクラス登録解除完了")
 
 
 def register():
-    """アドオン有効化時の処理"""
-    print("=" * 40)
-    print(f"AdaptiveWear Generator Pro v{bl_info['version']} 登録開始...")
+    """アドオン登録処理"""
+    print("=== AdaptiveWear Generator Pro v4.0.0 登録開始 ===")
 
-    # 1. 各モジュールのクラスを登録
-    register_modules()
-
-    # 2. シーンプロパティの登録
     try:
-        from .core.properties import AdaptiveWearGeneratorProPropertyGroup
+        # モジュールインポート
+        from . import core
+        from . import ui
 
-        Scene.adaptive_wear_generator_pro = PointerProperty(
-            type=AdaptiveWearGeneratorProPropertyGroup
+        print("モジュールインポート成功")
+
+        # 既存プロパティの安全な削除
+        if hasattr(bpy.types.Scene, "adaptive_wear_generator_pro"):
+            del bpy.types.Scene.adaptive_wear_generator_pro
+            print("既存プロパティを削除しました")
+
+        # クラス登録リスト
+        registration_classes = [
+            core.AWGProPropertyGroup,
+            core.AWGP_OT_GenerateWear,
+            core.AWGP_OT_DiagnoseBones,
+            ui.AWG_PT_MainPanel,
+        ]
+
+        # 各クラスを順次登録
+        for cls in registration_classes:
+            try:
+                bpy.utils.register_class(cls)
+                print(f"[SUCCESS] {cls.__name__} 登録完了")
+            except Exception as e:
+                print(f"[ERROR] {cls.__name__} 登録失敗: {e}")
+                # 既に登録されたクラスをロールバック
+                _rollback_registration(
+                    registration_classes[: registration_classes.index(cls)]
+                )
+                return
+
+        # シーンプロパティの設定
+        bpy.types.Scene.adaptive_wear_generator_pro = PointerProperty(
+            type=core.AWGProPropertyGroup
         )
-        print("AdaptiveWear: シーンプロパティ 'adaptive_wear_generator_pro' 登録成功")
-    except ImportError:
-        print(
-            "AdaptiveWear: エラー - 'AdaptiveWearGeneratorProPropertyGroup' が 'core.properties' からインポートできませんでした"
-        )
+        print("シーンプロパティ設定完了")
+
+        print("=== AdaptiveWear Generator Pro 登録完了 ===")
+
+    except ImportError as e:
+        print(f"=== モジュールインポートエラー: {str(e)} ===")
     except Exception as e:
-        print(f"AdaptiveWear: シーンプロパティ登録エラー - {str(e)}")
+        print(f"=== 登録エラー: {str(e)} ===")
+        import traceback
 
-    # 3. ロギングサービスの初期化
-    try:
-        from .services import logging_service
-
-        logging_service.initialize_logging(
-            log_level=logging.DEBUG,
-            log_to_file=True,
-            log_filename=f"{bl_info['name'].replace(' ', '_')}.log",
-        )
-        print("AdaptiveWear: ロギングサービス初期化完了")
-    except ImportError:
-        print("AdaptiveWear: エラー - 'logging_service' が見つかりませんでした")
-    except Exception as e:
-        print(f"AdaptiveWear: ロギングサービス初期化エラー - {str(e)}")
-
-    print(
-        f"AdaptiveWear Generator Pro 登録完了 (登録クラス数: {len(_registered_classes)})"
-    )
-    print("=" * 40)
+        traceback.print_exc()
 
 
 def unregister():
-    """アドオン無効化時の処理"""
-    print("=" * 40)
-    print("AdaptiveWear Generator Pro 登録解除開始...")
+    """アドオン登録解除処理"""
+    print("=== AdaptiveWear Generator Pro 登録解除開始 ===")
 
-    # 1. シーンプロパティの削除
-    if hasattr(Scene, "adaptive_wear_generator_pro"):
-        try:
-            del Scene.adaptive_wear_generator_pro
-            print(
-                "AdaptiveWear: シーンプロパティ 'adaptive_wear_generator_pro' 削除完了"
-            )
-        except Exception as e:
-            print(f"AdaptiveWear: シーンプロパティ削除エラー - {str(e)}")
-    else:
-        print(
-            "AdaptiveWear: シーンプロパティ 'adaptive_wear_generator_pro' は存在しませんでした"
-        )
-
-    # 2. 各モジュールのクラスを登録解除
-    unregister_modules()
-
-    # 3. ロギングサービスのシャットダウン
     try:
-        from .services import logging_service
+        # シーンプロパティの削除
+        if hasattr(bpy.types.Scene, "adaptive_wear_generator_pro"):
+            del bpy.types.Scene.adaptive_wear_generator_pro
+            print("シーンプロパティを削除しました")
 
-        logging_service.shutdown_logging()
-        print("AdaptiveWear: ロギングサービスシャットダウン完了")
+        # モジュール存在確認
+        try:
+            from . import core
+            from . import ui
+        except ImportError:
+            print("モジュールが見つかりません - 終了")
+            return
+
+        # クラス登録解除リスト（逆順）
+        unregistration_classes = [
+            ui.AWG_PT_MainPanel,
+            core.AWGP_OT_DiagnoseBones,
+            core.AWGP_OT_GenerateWear,
+            core.AWGProPropertyGroup,
+        ]
+
+        # 各クラスを順次登録解除
+        for cls in unregistration_classes:
+            try:
+                if hasattr(cls, "bl_rna"):
+                    bpy.utils.unregister_class(cls)
+                    print(f"[SUCCESS] {cls.__name__} 登録解除完了")
+                else:
+                    print(f"[SKIP] {cls.__name__} は既に登録解除済み")
+            except Exception as e:
+                print(f"[ERROR] {cls.__name__} 登録解除失敗: {e}")
+
+        print("=== AdaptiveWear Generator Pro 登録解除完了 ===")
+
     except Exception as e:
-        print(f"AdaptiveWear: ロギングサービスシャットダウンエラー - {str(e)}")
+        print(f"=== 登録解除エラー: {str(e)} ===")
 
-    print("AdaptiveWear Generator Pro 登録解除完了")
-    print("=" * 40)
+
+def _rollback_registration(registered_classes):
+    """登録に失敗した場合のロールバック処理"""
+    print("登録ロールバック開始...")
+    for cls in reversed(registered_classes):
+        try:
+            if hasattr(cls, "bl_rna"):
+                bpy.utils.unregister_class(cls)
+                print(f"[ROLLBACK] {cls.__name__} 登録解除")
+        except Exception as e:
+            print(f"[ROLLBACK ERROR] {cls.__name__}: {e}")
 
 
 if __name__ == "__main__":
