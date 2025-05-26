@@ -1,0 +1,139 @@
+name: CI for AdaptiveWear Generator Pro
+
+on:
+  push:
+    branches:
+      - main # 必要に応じてブランチ名を調整
+  pull_request:
+    branches:
+      - main # 必要に応じてブランチ名を調整
+  workflow_dispatch: # 手動実行を許可
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Blender 4.1
+      id: setup-blender
+      run: |
+        BLENDER_VERSION="4.1.0"
+        BLENDER_URL="https://download.blender.org/release/Blender${BLENDER_VERSION%.*}/blender-${BLENDER_VERSION}-linux-x64.tar.xz"
+        BLENDER_DIR="blender-${BLENDER_VERSION}-linux-x64"
+        
+        echo "Downloading Blender ${BLENDER_VERSION} from ${BLENDER_URL}"
+        wget ${BLENDER_URL} -O blender.tar.xz
+        
+        echo "Extracting Blender"
+        tar -xf blender.tar.xz
+        
+        echo "Adding Blender directory to PATH"
+        echo "$(pwd)/${BLENDER_DIR}" >> $GITHUB_PATH
+        
+        echo "Verifying Blender installation"
+        blender --version
+        
+        # Blenderのユーザーアドオンディレクトリパスを設定
+        BLENDER_ADDON_DIR="$HOME/.config/blender/${BLENDER_VERSION%.*}/scripts/addons"
+        echo "BLENDER_ADDON_DIR=${BLENDER_ADDON_DIR}" >> $GITHUB_ENV
+        echo "BLENDER_ADDON_PATH=${BLENDER_ADDON_DIR}" >> $GITHUB_ENV # テストスクリプト用
+        mkdir -p "$BLENDER_ADDON_DIR"
+        echo "Created Blender addon directory: $BLENDER_ADDON_DIR"
+
+    - name: Install AdaptiveWear Generator Pro Addon
+      run: |
+        ADDON_SOURCE_DIR="${{ github.workspace }}"
+        ADDON_TARGET_DIR="${{ env.BLENDER_ADDON_DIR }}/adaptive_wear_generator_pro"
+        
+        echo "Copying addon from ${ADDON_SOURCE_DIR} to ${ADDON_TARGET_DIR}"
+        cp -R "${ADDON_SOURCE_DIR}" "${ADDON_TARGET_DIR}"
+        
+        echo "Verifying addon installation"
+        ls -l "${ADDON_TARGET_DIR}"
+
+    - name: Set up Python
+      # Set up Python environment, useful for managing dependencies if any.
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10' # Blender 4.1 は Python 3.10 を使用
+
+    - name: Install Python dependencies
+      # Install Python packages required by the tests or addon.
+      # This assumes a requirements.txt file exists in the addon root.
+      run: |
+        ADDON_DIR="${{ env.BLENDER_ADDON_PATH }}"
+        if [ -f "${ADDON_DIR}/requirements.txt" ]; then
+          echo "Installing Python dependencies from requirements.txt"
+          pip install -r "${ADDON_DIR}/requirements.txt"
+        else
+          echo "requirements.txt not found in ${ADDON_DIR}. Skipping Python dependency installation."
+        fi
+
+    - name: Create Test Results Directories
+      run: |
+        mkdir -p test-results/basic-functionality
+        mkdir -p test-results/pleats-quality
+        mkdir -p test-results/mesh-integrity
+        mkdir -p test-renders/current
+        mkdir -p test-renders/baseline # 基準画像ディレクトリ (手動で更新・コミットが必要)
+        mkdir -p test-renders/diff # 差分画像ディレクトリ
+
+    - name: Run Basic Functionality Test
+      run: blender -b -P tests/run_basic_functionality_test.py -- --output-dir test-results/basic-functionality
+
+    - name: Run Pleats Quality Test
+      run: blender -b -P tests/run_pleats_quality_test.py -- --output-dir test-results/pleats-quality
+
+    - name: Run Mesh Integrity Test (T-Shirt)
+      run: blender -b -P tests/run_mesh_integrity_test.py -- --output-dir test-results/mesh-integrity --wear-type T_SHIRT
+
+    - name: Run Mesh Integrity Test (Pants)
+      run: blender -b -P tests/run_mesh_integrity_test.py -- --output-dir test-results/mesh-integrity --wear-type PANTS
+
+    - name: Run Mesh Integrity Test (Skirt)
+      run: blender -b -P tests/run_mesh_integrity_test.py -- --output-dir test-results/mesh-integrity --wear-type SKIRT
+
+    - name: Run Visual Regression Test
+      # テストする衣装タイプを複数指定
+      run: blender -b -P tests/run_visual_regression_test.py -- --output-dir test-renders/current --baseline-dir test-renders/baseline --diff-dir test-renders/diff --wear-types T_SHIRT SKIRT
+
+    - name: Upload Test Results Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: test-results/
+
+    - name: Upload Rendered Images Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-renders-current
+        path: test-renders/current/
+
+    - name: Compare Visual Regression Images
+      # reg-viz/reg-actions を使用して画像を比較
+      # 基準画像はリポジトリにコミットしておく必要があります (test-renders/baseline)
+      if: success() || failure() # 前のステップが成功/失敗に関わらず実行
+      uses: reg-viz/reg-actions@v1
+      with:
+        name: visual-regression-results
+        # current ディレクトリは run-visual-regression-test ステップで生成
+        # baseline ディレクトリはリポジトリにコミットされているものを想定
+        # diff ディレクトリは run-visual-regression-test ステップで作成済み
+        expectedPath: test-renders/baseline
+        actualPath: test-renders/current
+        diffPath: test-renders/diff
+        # その他のオプション (閾値など) は必要に応じて追加
+        # threshold: 0.01 # 例: 1%の差分まで許容
+
+    - name: Upload Visual Regression Diff Artifacts
+      # 差分画像が生成された場合にアップロード
+      if: always() # 常に実行
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-renders-diff
+        path: test-renders/diff/
+        # 差分がない場合はディレクトリが空になるため、warn-if-empty を使用
+        warn-if-empty: true

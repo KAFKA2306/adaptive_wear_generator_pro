@@ -1,0 +1,37 @@
+{
+  "Generate_T_SHIRT_Test": {
+    "passed": false,
+    "error": "\u30a8\u30e9\u30fc: \u8863\u88c5\u751f\u6210\u306b\u5931\u6557\u3057\u307e\u3057\u305f\n",
+    "generated_object": null
+  },
+  "Generate_PANTS_Test": {
+    "passed": false,
+    "error": "\u30a8\u30e9\u30fc: \u8863\u88c5\u751f\u6210\u306b\u5931\u6557\u3057\u307e\u3057\u305f\n",
+    "generated_object": null
+  },
+  "Generate_BRA_Test": {
+    "passed": false,
+    "error": "\u30a8\u30e9\u30fc: \u8863\u88c5\u751f\u6210\u306b\u5931\u6557\u3057\u307e\u3057\u305f\n",
+    "generated_object": null
+  },
+  "Generate_SOCKS_Test": {
+    "passed": false,
+    "error": "\u30a8\u30e9\u30fc: \u8863\u88c5\u751f\u6210\u306b\u5931\u6557\u3057\u307e\u3057\u305f\n",
+    "generated_object": null
+  },
+  "Generate_GLOVES_Test": {
+    "passed": false,
+    "error": "\u30a8\u30e9\u30fc: \u8863\u88c5\u751f\u6210\u306b\u5931\u6557\u3057\u307e\u3057\u305f\n",
+    "generated_object": null
+  },
+  "Generate_SKIRT_Test": {
+    "passed": false,
+    "error": "\u30a8\u30e9\u30fc: \u8863\u88c5\u751f\u6210\u306b\u5931\u6557\u3057\u307e\u3057\u305f\n",
+    "generated_object": null
+  },
+  "DiagnoseBones_Test": {
+    "passed": true,
+    "error": null
+  },
+  "overall_pass": false
+}
