@@ -429,7 +429,7 @@ class UltimateAIWearGenerator:
             core_utils.apply_subdivision_surface(garment, levels=1)
 
         if self.props.enable_cloth_sim:
-            core_utils.setup_cloth_simulation(garment)
+            core_utils.setup_cloth_simulation(garment, self.base_obj)
 
     def _apply_standard_quality(self, garment: bpy.types.Object) -> None:
         """標準品質処理"""

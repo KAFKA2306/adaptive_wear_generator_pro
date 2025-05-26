@@ -6,14 +6,20 @@ UI設定とAI生成パラメータ
 import bpy
 from bpy.types import PropertyGroup
 from bpy.props import (
-    PointerProperty, EnumProperty, BoolProperty,
-    FloatProperty, IntProperty, StringProperty
+    PointerProperty,
+    EnumProperty,
+    BoolProperty,
+    FloatProperty,
+    IntProperty,
+    StringProperty,
 )
 from typing import Optional
+
 
 def poll_mesh_objects(self, obj: bpy.types.Object) -> bool:
     """メッシュオブジェクトの選択フィルタ"""
     return obj.type == "MESH"
+
 
 class AWGProPropertyGroup(PropertyGroup):
     """AdaptiveWear Generator Pro のメインプロパティグループ"""
@@ -23,7 +29,7 @@ class AWGProPropertyGroup(PropertyGroup):
         name="素体メッシュ",
         description="衣装生成の基となる3Dメッシュ",
         type=bpy.types.Object,
-        poll=poll_mesh_objects
+        poll=poll_mesh_objects,
     )
 
     wear_type: EnumProperty(
@@ -57,7 +63,7 @@ class AWGProPropertyGroup(PropertyGroup):
     tight_fit: BoolProperty(
         name="密着フィット",
         description="素体に密着したフィッティングを適用",
-        default=False
+        default=False,
     )
 
     thickness: FloatProperty(
@@ -67,14 +73,12 @@ class AWGProPropertyGroup(PropertyGroup):
         min=0.001,
         max=0.1,
         step=0.1,
-        precision=3
+        precision=3,
     )
 
     # AI拡張設定
     ai_quality_mode: BoolProperty(
-        name="AI品質モード",
-        description="AI による高度な品質向上を有効化",
-        default=True
+        name="AI品質モード", description="AI による高度な品質向上を有効化", default=True
     )
 
     ai_threshold: FloatProperty(
@@ -83,13 +87,13 @@ class AWGProPropertyGroup(PropertyGroup):
         default=0.3,
         min=0.0,
         max=1.0,
-        precision=2
+        precision=2,
     )
 
     ai_subdivision: BoolProperty(
         name="AIサブディビジョン",
         description="AI による表面分割を有効化（最高品質時のみ）",
-        default=False
+        default=False,
     )
 
     ai_thickness_multiplier: FloatProperty(
@@ -98,7 +102,7 @@ class AWGProPropertyGroup(PropertyGroup):
         default=1.0,
         min=0.1,
         max=3.0,
-        precision=2
+        precision=2,
     )
 
     # 衣装別設定
@@ -108,13 +112,13 @@ class AWGProPropertyGroup(PropertyGroup):
         default=0.5,
         min=0.0,
         max=1.0,
-        precision=2
+        precision=2,
     )
 
     glove_fingers: BoolProperty(
         name="指あり手袋",
         description="True=指あり手袋、False=ミトンタイプ",
-        default=False
+        default=False,
     )
 
     # スカート専用設定
@@ -124,7 +128,7 @@ class AWGProPropertyGroup(PropertyGroup):
         default=0.6,
         min=0.0,
         max=1.0,
-        precision=2
+        precision=2,
     )
 
     pleat_count: IntProperty(
@@ -132,7 +136,7 @@ class AWGProPropertyGroup(PropertyGroup):
         description="プリーツの数（6-24推奨）",
         default=12,
         min=6,
-        max=24
+        max=24,
     )
 
     pleat_depth: FloatProperty(
@@ -141,38 +145,30 @@ class AWGProPropertyGroup(PropertyGroup):
         default=0.05,
         min=0.01,
         max=0.2,
-        precision=3
+        precision=3,
     )
 
     # 品質設定
     enable_cloth_sim: BoolProperty(
         name="クロスシミュレーション",
         description="リアルな布の動きをシミュレート",
-        default=True
+        default=True,
     )
 
     enable_edge_smoothing: BoolProperty(
-        name="エッジスムージング",
-        description="滑らかなエッジ処理を適用",
-        default=True
+        name="エッジスムージング", description="滑らかなエッジ処理を適用", default=True
     )
 
     progressive_fitting: BoolProperty(
-        name="多段階フィット",
-        description="段階的なフィッティング処理",
-        default=True
+        name="多段階フィット", description="段階的なフィッティング処理", default=True
     )
 
     preserve_shapekeys: BoolProperty(
-        name="シェイプキー保持",
-        description="元のシェイプキーを保持",
-        default=True
+        name="シェイプキー保持", description="元のシェイプキーを保持", default=True
     )
 
     use_vertex_groups: BoolProperty(
-        name="頂点グループ使用",
-        description="頂点グループによる精密制御",
-        default=True
+        name="頂点グループ使用", description="頂点グループによる精密制御", default=True
     )
 
     min_weight: FloatProperty(
@@ -181,21 +177,21 @@ class AWGProPropertyGroup(PropertyGroup):
         default=0.1,
         min=0.0,
         max=1.0,
-        precision=2
+        precision=2,
     )
 
     # マテリアル設定
     use_text_material: BoolProperty(
         name="テキストマテリアル使用",
         description="テキストプロンプトからマテリアルを生成",
-        default=False
+        default=False,
     )
 
     material_prompt: StringProperty(
         name="マテリアル指示",
         description="マテリアルの特徴を記述（例：シルク素材の光沢のある）",
         default="",
-        maxlen=200
+        maxlen=200,
     )
 
     # AI詳細設定（上級者向け）
@@ -205,7 +201,7 @@ class AWGProPropertyGroup(PropertyGroup):
         default=0.1,
         min=0.0,
         max=1.0,
-        precision=2
+        precision=2,
     )
 
     ai_bra_threshold: FloatProperty(
@@ -214,7 +210,7 @@ class AWGProPropertyGroup(PropertyGroup):
         default=0.1,
         min=0.0,
         max=1.0,
-        precision=2
+        precision=2,
     )
 
     ai_tshirt_threshold: FloatProperty(
@@ -223,7 +219,7 @@ class AWGProPropertyGroup(PropertyGroup):
         default=0.1,
         min=0.0,
         max=1.0,
-        precision=2
+        precision=2,
     )
 
     ai_sock_multiplier: FloatProperty(
@@ -232,7 +228,7 @@ class AWGProPropertyGroup(PropertyGroup):
         default=1.0,
         min=0.1,
         max=3.0,
-        precision=2
+        precision=2,
     )
 
     ai_tight_offset: FloatProperty(
@@ -241,7 +237,7 @@ class AWGProPropertyGroup(PropertyGroup):
         default=0.001,
         min=0.0,
         max=0.1,
-        precision=4
+        precision=4,
     )
 
     ai_offset_multiplier: FloatProperty(
@@ -250,22 +246,29 @@ class AWGProPropertyGroup(PropertyGroup):
         default=0.5,
         min=0.0,
         max=2.0,
-        precision=2
+        precision=2,
+    )
+
+    # リギング設定
+    auto_rigging: BoolProperty(
+        name="自動リギング",
+        description="生成した衣装に自動でリギングを適用",
+        default=True,
     )
 
     def get_ai_settings(self) -> dict:
         """AI設定を辞書形式で取得"""
         return {
-            'quality_mode': self.ai_quality_mode,
-            'threshold': self.ai_threshold,
-            'subdivision': self.ai_subdivision,
-            'thickness_multiplier': self.ai_thickness_multiplier,
-            'hand_threshold': self.ai_hand_threshold,
-            'bra_threshold': self.ai_bra_threshold,
-            'tshirt_threshold': self.ai_tshirt_threshold,
-            'sock_multiplier': self.ai_sock_multiplier,
-            'tight_offset': self.ai_tight_offset,
-            'offset_multiplier': self.ai_offset_multiplier,
+            "quality_mode": self.ai_quality_mode,
+            "threshold": self.ai_threshold,
+            "subdivision": self.ai_subdivision,
+            "thickness_multiplier": self.ai_thickness_multiplier,
+            "hand_threshold": self.ai_hand_threshold,
+            "bra_threshold": self.ai_bra_threshold,
+            "tshirt_threshold": self.ai_tshirt_threshold,
+            "sock_multiplier": self.ai_sock_multiplier,
+            "tight_offset": self.ai_tight_offset,
+            "offset_multiplier": self.ai_offset_multiplier,
         }
 
     def validate_settings(self) -> tuple[bool, list[str]]:

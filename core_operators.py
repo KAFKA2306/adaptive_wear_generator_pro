@@ -21,6 +21,11 @@ class AWGP_OT_GenerateWear(Operator):
     bl_description = "AI駆動で衣装を自動生成します"
     bl_options = {"REGISTER", "UNDO"}
 
+    @classmethod
+    def poll(cls, context: bpy.types.Context) -> bool:
+        """オペレーターの有効/無効を判定"""
+        awg_props = context.scene.adaptive_wear_generator_pro
+        return awg_props.base_body is not None and awg_props.wear_type != "NONE"
     def execute(self, context: bpy.types.Context) -> Set[str]:
         """メイン実行処理"""
         props = context.scene.adaptive_wear_generator_pro

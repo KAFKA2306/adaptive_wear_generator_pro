@@ -10,13 +10,15 @@ from . import core_operators
 
 logger = logging.getLogger(__name__)
 
+
 # メインパネル
 class AWG_PT_MainPanel(bpy.types.Panel):
     """AdaptiveWear Generator Pro メインパネル"""
+
     bl_label = "AdaptiveWear Generator Pro"
     bl_idname = "AWG_PT_MainPanel"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
     bl_category = "AdaptiveWear"
 
     def draw(self, context: bpy.types.Context) -> None:
@@ -27,7 +29,7 @@ class AWG_PT_MainPanel(bpy.types.Panel):
 
         # 基本設定
         box = layout.box()
-        box.label(text="基本設定", icon='SETTINGS')
+        box.label(text="基本設定", icon="SETTINGS")
         box.prop(awg_props, "base_body")
         box.prop(awg_props, "wear_type")
         box.prop(awg_props, "quality_level")
@@ -36,20 +38,29 @@ class AWG_PT_MainPanel(bpy.types.Panel):
 
         # 主要なオペレーターボタン
         # 素体メッシュが選択されていない場合はボタンを無効化
-        generate_op = layout.operator(core_operators.AWGP_OT_GenerateWear.bl_idname, icon='OUTLINER_OB_GROUP_INSTANCE')
-        generate_op.enabled = (awg_props.base_body is not None and awg_props.wear_type != 'NONE')
+        generate_op = layout.operator(
+            core_operators.AWGP_OT_GenerateWear.bl_idname,
+            icon="OUTLINER_OB_GROUP_INSTANCE",
+        )
+        if not (awg_props.base_body is not None and awg_props.wear_type != "NONE"):
+            generate_op = layout.operator(
+                core_operators.AWGP_OT_GenerateWear.bl_idname,
+                icon="OUTLINER_OB_GROUP_INSTANCE",
+                text="Generate Wear (要設定)",
+            )
 
 
 # 詳細設定パネル
 class AWG_PT_AdvancedPanel(bpy.types.Panel):
     """AdaptiveWear Generator Pro 詳細設定パネル"""
+
     bl_label = "詳細設定"
     bl_idname = "AWG_PT_AdvancedPanel"
-    bl_parent_id = "AWG_PT_MainPanel" # メインパネルの子として表示
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
+    bl_parent_id = "AWG_PT_MainPanel"  # メインパネルの子として表示
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
     bl_category = "AdaptiveWear"
-    bl_options = {'DEFAULT_CLOSED'} # デフォルトで閉じる
+    bl_options = {"DEFAULT_CLOSED"}  # デフォルトで閉じる
 
     def draw(self, context: bpy.types.Context) -> None:
         """パネルUIの描画"""
@@ -59,7 +70,7 @@ class AWG_PT_AdvancedPanel(bpy.types.Panel):
 
         # フィッティング設定
         box = layout.box()
-        box.label(text="フィッティング設定", icon='MOD_CLOTH')
+        box.label(text="フィッティング設定", icon="MOD_CLOTH")
         box.prop(awg_props, "tight_fit")
         box.prop(awg_props, "thickness")
         box.prop(awg_props, "progressive_fitting")
@@ -68,27 +79,27 @@ class AWG_PT_AdvancedPanel(bpy.types.Panel):
 
         # 品質設定
         box = layout.box()
-        box.label(text="品質設定", icon='OUTLINER_OB_LIGHT')
+        box.label(text="品質設定", icon="OUTLINER_OB_LIGHT")
         box.prop(awg_props, "enable_cloth_sim")
         box.prop(awg_props, "enable_edge_smoothing")
         box.prop(awg_props, "preserve_shapekeys")
         box.prop(awg_props, "use_vertex_groups")
         if awg_props.use_vertex_groups:
-             box.prop(awg_props, "min_weight")
+            box.prop(awg_props, "min_weight")
 
         layout.separator()
 
         # 衣装別設定
         box = layout.box()
-        box.label(text="衣装別設定", icon='MOD_MESHDEFORM')
+        box.label(text="衣装別設定", icon="MOD_MESHDEFORM")
         # 靴下設定
-        if awg_props.wear_type == 'SOCKS':
+        if awg_props.wear_type == "SOCKS":
             box.prop(awg_props, "sock_length")
         # 手袋設定
-        if awg_props.wear_type == 'GLOVES':
+        if awg_props.wear_type == "GLOVES":
             box.prop(awg_props, "glove_fingers")
         # スカート設定
-        if awg_props.wear_type == 'SKIRT':
+        if awg_props.wear_type == "SKIRT":
             box.prop(awg_props, "skirt_length")
             box.prop(awg_props, "pleat_count")
             box.prop(awg_props, "pleat_depth")
@@ -97,7 +108,7 @@ class AWG_PT_AdvancedPanel(bpy.types.Panel):
 
         # マテリアル設定
         box = layout.box()
-        box.label(text="マテリアル設定", icon='MATERIAL')
+        box.label(text="マテリアル設定", icon="MATERIAL")
         box.prop(awg_props, "use_text_material")
         if awg_props.use_text_material:
             box.prop(awg_props, "material_prompt")
@@ -106,7 +117,7 @@ class AWG_PT_AdvancedPanel(bpy.types.Panel):
 
         # AI詳細設定
         box = layout.box()
-        box.label(text="AI詳細設定 (上級者向け)", icon='NODE')
+        box.label(text="AI詳細設定 (上級者向け)", icon="NODE")
         box.prop(awg_props, "ai_quality_mode")
         if awg_props.ai_quality_mode:
             box.prop(awg_props, "ai_threshold")
@@ -123,13 +134,14 @@ class AWG_PT_AdvancedPanel(bpy.types.Panel):
 # ヘルプパネル
 class AWG_PT_HelpPanel(bpy.types.Panel):
     """AdaptiveWear Generator Pro ヘルプパネル"""
+
     bl_label = "ヘルプ"
     bl_idname = "AWG_PT_HelpPanel"
-    bl_parent_id = "AWG_PT_MainPanel" # メインパネルの子として表示
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
+    bl_parent_id = "AWG_PT_MainPanel"  # メインパネルの子として表示
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
     bl_category = "AdaptiveWear"
-    bl_options = {'DEFAULT_CLOSED'} # デフォルトで閉じる
+    bl_options = {"DEFAULT_CLOSED"}  # デフォルトで閉じる
 
     def draw(self, context: bpy.types.Context) -> None:
         """パネルUIの描画"""
@@ -138,8 +150,10 @@ class AWG_PT_HelpPanel(bpy.types.Panel):
         # awg_props = scene.adaptive_wear_generator_pro # 未使用
 
         # ドキュメントURL
-        layout.label(text="ドキュメント:", icon='FILE_TEXT')
-        layout.operator("wm.url_open", text="オンラインドキュメント", icon='INFO').url = "https://example.com/awg-pro-docs" # 仮のURL
+        layout.label(text="ドキュメント:", icon="FILE_TEXT")
+        layout.operator(
+            "wm.url_open", text="オンラインドキュメント", icon="INFO"
+        ).url = "https://example.com/awg-pro-docs"  # 仮のURL
 
         layout.separator()
 
@@ -151,7 +165,9 @@ class AWG_PT_HelpPanel(bpy.types.Panel):
         layout.separator()
 
         # 診断ボタン
-        layout.operator(core_operators.AWGP_OT_DiagnoseBones.bl_idname, icon='VIEW_PERSPECTIVE')
+        layout.operator(
+            core_operators.AWGP_OT_DiagnoseBones.bl_idname, icon="VIEW_PERSPECTIVE"
+        )
 
 
 # 登録クラス一覧
@@ -160,6 +176,7 @@ registration_classes = [
     AWG_PT_AdvancedPanel,
     AWG_PT_HelpPanel,
 ]
+
 
 # 登録関数
 def register() -> None:
