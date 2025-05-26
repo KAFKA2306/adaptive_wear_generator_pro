@@ -1,8 +1,3 @@
-"""
-AdaptiveWear Generator Pro - AI駆動衣装生成Blenderアドオン
-完全統合版 v4.1.0
-"""
-
 bl_info = {
     "name": "AdaptiveWear Generator Pro",
     "author": "AdaptiveWear Team",
@@ -19,43 +14,37 @@ from typing import Set, List
 import sys
 import logging
 
-# ログ設定
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def setup_logging() -> None:
-    """ログシステムの初期化"""
     handler = logging.StreamHandler(sys.stdout)
     formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-def register() -> None:
-    """アドオン登録処理"""
-    logger.info("=== AdaptiveWear Generator Pro v4.1.0 登録開始 ===")
 
+def register() -> None:
+    logger.info("=== AdaptiveWear Generator Pro v4.1.0 登録開始 ===")
     try:
         setup_logging()
-
-        # モジュールの動的インポート
         from . import (
             core_properties,
             core_operators,
             core_generators,
             core_utils,
-            ui_panels
+            ui_panels,
         )
 
         logger.info("モジュールインポート成功")
 
-        # 既存プロパティの安全な削除
         if hasattr(bpy.types.Scene, "adaptive_wear_generator_pro"):
             del bpy.types.Scene.adaptive_wear_generator_pro
             logger.info("既存プロパティを削除しました")
 
-        # 登録クラス一覧
         registration_classes = [
             core_properties.AWGProPropertyGroup,
             core_operators.AWGP_OT_GenerateWear,
@@ -65,7 +54,6 @@ def register() -> None:
             ui_panels.AWG_PT_HelpPanel,
         ]
 
-        # クラス登録
         for cls in registration_classes:
             try:
                 bpy.utils.register_class(cls)
@@ -73,46 +61,36 @@ def register() -> None:
             except Exception as e:
                 logger.error(f"[ERROR] {cls.__name__} 登録失敗: {e}")
                 _rollback_registration(
-                    registration_classes[:registration_classes.index(cls)]
+                    registration_classes[: registration_classes.index(cls)]
                 )
                 return
 
-        # シーンプロパティ設定
         bpy.types.Scene.adaptive_wear_generator_pro = PointerProperty(
             type=core_properties.AWGProPropertyGroup
         )
-
         logger.info("=== AdaptiveWear Generator Pro 登録完了 ===")
-
     except ImportError as e:
         logger.error(f"=== モジュールインポートエラー: {str(e)} ===")
     except Exception as e:
         logger.error(f"=== 登録エラー: {str(e)} ===")
         import traceback
+
         traceback.print_exc()
 
-def unregister() -> None:
-    """アドオン登録解除処理"""
-    logger.info("=== AdaptiveWear Generator Pro 登録解除開始 ===")
 
+def unregister() -> None:
+    logger.info("=== AdaptiveWear Generator Pro 登録解除開始 ===")
     try:
-        # シーンプロパティ削除
         if hasattr(bpy.types.Scene, "adaptive_wear_generator_pro"):
             del bpy.types.Scene.adaptive_wear_generator_pro
             logger.info("シーンプロパティを削除しました")
 
-        # モジュール存在確認
         try:
-            from . import (
-                core_properties,
-                core_operators,
-                ui_panels
-            )
+            from . import core_properties, core_operators, ui_panels
         except ImportError:
             logger.warning("モジュールが見つかりません - 終了")
             return
 
-        # クラス登録解除（逆順）
         unregistration_classes = [
             ui_panels.AWG_PT_HelpPanel,
             ui_panels.AWG_PT_AdvancedPanel,
@@ -131,14 +109,12 @@ def unregister() -> None:
                     logger.info(f"[SKIP] {cls.__name__} は既に登録解除済み")
             except Exception as e:
                 logger.error(f"[ERROR] {cls.__name__} 登録解除失敗: {e}")
-
         logger.info("=== AdaptiveWear Generator Pro 登録解除完了 ===")
-
     except Exception as e:
         logger.error(f"=== 登録解除エラー: {str(e)} ===")
 
+
 def _rollback_registration(registered_classes: List) -> None:
-    """登録失敗時のロールバック処理"""
     logger.warning("登録ロールバック開始...")
     for cls in reversed(registered_classes):
         try:
@@ -147,6 +123,7 @@ def _rollback_registration(registered_classes: List) -> None:
                 logger.info(f"[ROLLBACK] {cls.__name__} 登録解除")
         except Exception as e:
             logger.error(f"[ROLLBACK ERROR] {cls.__name__}: {e}")
+
 
 if __name__ == "__main__":
     register()

@@ -1,8 +1,3 @@
-"""
-コアプロパティ定義
-UI設定とAI生成パラメータ
-"""
-
 import bpy
 from bpy.types import PropertyGroup
 from bpy.props import (
@@ -17,14 +12,10 @@ from typing import Optional
 
 
 def poll_mesh_objects(self, obj: bpy.types.Object) -> bool:
-    """メッシュオブジェクトの選択フィルタ"""
     return obj.type == "MESH"
 
 
 class AWGProPropertyGroup(PropertyGroup):
-    """AdaptiveWear Generator Pro のメインプロパティグループ"""
-
-    # 基本設定
     base_body: PointerProperty(
         name="素体メッシュ",
         description="衣装生成の基となる3Dメッシュ",
@@ -59,7 +50,6 @@ class AWGProPropertyGroup(PropertyGroup):
         default="ULTIMATE",
     )
 
-    # フィッティング設定
     tight_fit: BoolProperty(
         name="密着フィット",
         description="素体に密着したフィッティングを適用",
@@ -76,7 +66,6 @@ class AWGProPropertyGroup(PropertyGroup):
         precision=3,
     )
 
-    # AI拡張設定
     ai_quality_mode: BoolProperty(
         name="AI品質モード", description="AI による高度な品質向上を有効化", default=True
     )
@@ -105,7 +94,6 @@ class AWGProPropertyGroup(PropertyGroup):
         precision=2,
     )
 
-    # 衣装別設定
     sock_length: FloatProperty(
         name="靴下の長さ",
         description="靴下の長さ（0.0=足首、1.0=膝上）",
@@ -121,7 +109,6 @@ class AWGProPropertyGroup(PropertyGroup):
         default=False,
     )
 
-    # スカート専用設定
     skirt_length: FloatProperty(
         name="スカート丈",
         description="スカートの丈の長さ（0.0=膝上、1.0=足首）",
@@ -148,7 +135,6 @@ class AWGProPropertyGroup(PropertyGroup):
         precision=3,
     )
 
-    # 品質設定
     enable_cloth_sim: BoolProperty(
         name="クロスシミュレーション",
         description="リアルな布の動きをシミュレート",
@@ -180,7 +166,6 @@ class AWGProPropertyGroup(PropertyGroup):
         precision=2,
     )
 
-    # マテリアル設定
     use_text_material: BoolProperty(
         name="テキストマテリアル使用",
         description="テキストプロンプトからマテリアルを生成",
@@ -194,7 +179,6 @@ class AWGProPropertyGroup(PropertyGroup):
         maxlen=200,
     )
 
-    # AI詳細設定（上級者向け）
     ai_hand_threshold: FloatProperty(
         name="AI手閾値",
         description="手の検出感度",
@@ -249,7 +233,6 @@ class AWGProPropertyGroup(PropertyGroup):
         precision=2,
     )
 
-    # リギング設定
     auto_rigging: BoolProperty(
         name="自動リギング",
         description="生成した衣装に自動でリギングを適用",
@@ -257,7 +240,6 @@ class AWGProPropertyGroup(PropertyGroup):
     )
 
     def get_ai_settings(self) -> dict:
-        """AI設定を辞書形式で取得"""
         return {
             "quality_mode": self.ai_quality_mode,
             "threshold": self.ai_threshold,
@@ -272,25 +254,18 @@ class AWGProPropertyGroup(PropertyGroup):
         }
 
     def validate_settings(self) -> tuple[bool, list[str]]:
-        """設定の検証"""
         errors = []
-
         if not self.base_body:
             errors.append("素体メッシュが選択されていません")
         elif self.base_body.type != "MESH":
             errors.append("選択されたオブジェクトはメッシュではありません")
-
         if self.wear_type == "NONE":
             errors.append("衣装タイプが選択されていません")
-
         if self.thickness < 0.001 or self.thickness > 0.1:
             errors.append("厚みは0.001から0.1の範囲で設定してください")
-
-        # 衣装タイプ別の追加検証
         if self.wear_type == "SKIRT":
             if self.pleat_count < 6 or self.pleat_count > 24:
                 errors.append("プリーツ数は6から24の範囲で設定してください")
             if self.pleat_depth < 0.01 or self.pleat_depth > 0.2:
                 errors.append("プリーツ深さは0.01から0.2の範囲で設定してください")
-
         return len(errors) == 0, errors
