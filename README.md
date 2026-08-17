@@ -1,5 +1,8 @@
 # AdaptiveWear Generator Pro — Blender密着衣装生成アドオン
 
+[![CI for AdaptiveWear Generator Pro](https://github.com/KAFKA2306/adaptive_wear_generator_pro/actions/workflows/awg-pro-ci.yml/badge.svg)](https://github.com/KAFKA2306/adaptive_wear_generator_pro/actions/workflows/awg-pro-ci.yml)
+[![Strict generation contract](https://github.com/KAFKA2306/adaptive_wear_generator_pro/actions/workflows/strict-generation-contract.yml/badge.svg)](https://github.com/KAFKA2306/adaptive_wear_generator_pro/actions/workflows/strict-generation-contract.yml)
+
 Blender上の素体メッシュから、Tシャツ、パンツ、ブラ、靴下、手袋、プリーツスカートの候補形状を生成するアドオンです。
 
 ## 現在の状態：研究候補のみ
