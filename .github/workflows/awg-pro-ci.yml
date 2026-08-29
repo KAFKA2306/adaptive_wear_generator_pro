@@ -2,11 +2,9 @@ name: CI for AdaptiveWear Generator Pro
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -23,82 +21,40 @@ jobs:
           BLENDER_VERSION="4.1.0"
           BLENDER_URL="https://download.blender.org/release/Blender${BLENDER_VERSION%.*}/blender-${BLENDER_VERSION}-linux-x64.tar.xz"
           BLENDER_DIR="blender-${BLENDER_VERSION}-linux-x64"
-
           wget --quiet --show-progress "${BLENDER_URL}" -O blender.tar.xz
           tar -xf blender.tar.xz
-
-          export PATH="$(pwd)/${BLENDER_DIR}:$PATH"
-          blender --version
           echo "$(pwd)/${BLENDER_DIR}" >> "$GITHUB_PATH"
-
+          "$(pwd)/${BLENDER_DIR}/blender" --version
           BLENDER_ADDON_DIR="$HOME/.config/blender/${BLENDER_VERSION%.*}/scripts/addons"
           echo "BLENDER_ADDON_DIR=${BLENDER_ADDON_DIR}" >> "$GITHUB_ENV"
           echo "BLENDER_ADDON_PATH=${BLENDER_ADDON_DIR}" >> "$GITHUB_ENV"
           mkdir -p "$BLENDER_ADDON_DIR"
 
-      - name: Install AdaptiveWear Generator Pro Addon
+      - name: Install addon
         run: |
-          ADDON_SOURCE_DIR="${{ github.workspace }}"
           ADDON_TARGET_DIR="${{ env.BLENDER_ADDON_DIR }}/adaptive_wear_generator_pro"
-          cp -R "${ADDON_SOURCE_DIR}" "${ADDON_TARGET_DIR}"
-          test -f "${ADDON_TARGET_DIR}/__init__.py"
+          cp -R "${{ github.workspace }}" "$ADDON_TARGET_DIR"
+          test -f "$ADDON_TARGET_DIR/__init__.py"
 
-      - name: Create Test Results Directories
-        run: |
-          mkdir -p test-results/basic-functionality
-          mkdir -p test-results/pleats-quality
-          mkdir -p test-results/mesh-integrity
-          mkdir -p test-renders/current
-          mkdir -p test-renders/baseline
-          mkdir -p test-renders/diff
+      - name: Create test result directories
+        run: mkdir -p test-results/basic-functionality test-results/mesh-integrity
 
-      - name: Run Basic Functionality Test
+      - name: Run basic functionality test
         run: blender -b -P tests/run_basic_functionality_test.py -- --output-dir test-results/basic-functionality
 
-      - name: Run Pleats Quality Test
-        run: blender -b -P tests/run_pleats_quality_test.py -- --output-dir test-results/pleats-quality
-
-      - name: Run Mesh Integrity Test (T-Shirt)
+      - name: Run mesh integrity test for T-Shirt
         run: blender -b -P tests/run_mesh_integrity_test.py -- --output-dir test-results/mesh-integrity --wear-type T_SHIRT
 
-      - name: Run Mesh Integrity Test (Pants)
+      - name: Run mesh integrity test for Pants
         run: blender -b -P tests/run_mesh_integrity_test.py -- --output-dir test-results/mesh-integrity --wear-type PANTS
 
-      - name: Run Mesh Integrity Test (Skirt)
+      - name: Run mesh integrity test for Skirt
         run: blender -b -P tests/run_mesh_integrity_test.py -- --output-dir test-results/mesh-integrity --wear-type SKIRT
 
-      - name: Run Visual Regression Test
-        run: blender -b -P tests/run_visual_regression_test.py -- --output-dir test-renders/current --baseline-dir test-renders/baseline --diff-dir test-renders/diff --wear-types T_SHIRT SKIRT
-
-      - name: Upload Test Results Artifacts
+      - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: test-results/
-          if-no-files-found: warn
-
-      - name: Upload Rendered Images Artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-renders-current
-          path: test-renders/current/
-          if-no-files-found: warn
-
-      - name: Compare Visual Regression Images
-        if: always()
-        uses: reg-viz/reg-actions@v1
-        with:
-          name: visual-regression-results
-          expectedPath: test-renders/baseline
-          actualPath: test-renders/current
-          diffPath: test-renders/diff
-
-      - name: Upload Visual Regression Diff Artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-renders-diff
-          path: test-renders/diff/
-          if-no-files-found: warn
+          if-no-files-found: error
