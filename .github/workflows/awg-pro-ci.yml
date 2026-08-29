@@ -37,7 +37,7 @@ jobs:
           test -f "$ADDON_TARGET_DIR/__init__.py"
 
       - name: Create test result directories
-        run: mkdir -p test-results/basic-functionality test-results/mesh-integrity
+        run: mkdir -p test-results/basic-functionality test-results/mesh-integrity test-results/fbx-roundtrip
 
       - name: Run basic functionality test
         run: blender -b -P tests/run_basic_functionality_test.py -- --output-dir test-results/basic-functionality
@@ -50,6 +50,9 @@ jobs:
 
       - name: Run mesh integrity test for Skirt
         run: blender -b -P tests/run_mesh_integrity_test.py -- --output-dir test-results/mesh-integrity --wear-type SKIRT
+
+      - name: Run FBX round-trip test
+        run: blender -b -P tests/run_fbx_roundtrip_test.py -- --output-dir test-results/fbx-roundtrip
 
       - name: Upload test results
         if: always()
