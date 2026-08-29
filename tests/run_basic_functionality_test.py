@@ -143,6 +143,7 @@ def run_test_suite(test_body: bpy.types.Object) -> Dict[str, Any]:
             props.base_body = test_body
             props.wear_type = wear_type
             props.quality_level = 'MEDIUM' # 高速な品質レベルでテスト
+            props.auto_rigging = False # このテストは生成を検証し、Armature付きリギングは別検証とする
             # 衣装タイプ固有のプロパティも設定が必要な場合あり
             if wear_type == 'SKIRT':
                 props.pleat_count = 12
