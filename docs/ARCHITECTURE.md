@@ -51,7 +51,7 @@ AWGP_OT_GenerateWear.execute()
   ├─ AWGProPropertyGroup.validate_settings()
   ├─ _generate_garment()
   │   ├─ SKIRT → generate_pleated_skirt()
-  │   └─ その他 → OptimizedAIWearGenerator.generate()
+  │   └─ その他 → UltimateAIWearGenerator.generate()
   ├─ strict_apply_post_processing()
   │   ├─ material
   │   ├─ pleat evaluation (SKIRT)
@@ -60,7 +60,7 @@ AWGP_OT_GenerateWear.execute()
   └─ select_single_object()
 ```
 
-`OptimizedAIWearGenerator`などの旧名称に`AI`が含まれますが、現行リポジトリに学習済みモデルや推論ランタイムはありません。実装はBlender Python APIを使ったルールベース処理です。
+`UltimateAIWearGenerator`などの旧名称に`AI`が含まれますが、現行リポジトリに学習済みモデルや推論ランタイムはありません。実装はBlender Python APIを使ったルールベース処理です。
 
 ## モジュールの責務
 
