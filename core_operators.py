@@ -66,7 +66,7 @@ class AWGP_OT_GenerateWear(Operator):
         if props.wear_type == "SKIRT":
             return core_generators.generate_pleated_skirt(props)
         else:
-            generator = core_generators.OptimizedAIWearGenerator(props)
+            generator = core_generators.UltimateAIWearGenerator(props)
             return generator.generate()
 
     def _apply_post_processing(self, garment: bpy.types.Object, props) -> None:

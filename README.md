@@ -1,109 +1,73 @@
-# AdaptiveWear Generator Pro — Blender密着衣装生成アドオン
+# AdaptiveWear Generator Pro — Blender衣装候補生成アドオン
 
 [![CI for AdaptiveWear Generator Pro](https://github.com/KAFKA2306/adaptive_wear_generator_pro/actions/workflows/awg-pro-ci.yml/badge.svg)](https://github.com/KAFKA2306/adaptive_wear_generator_pro/actions/workflows/awg-pro-ci.yml)
 [![Strict generation contract](https://github.com/KAFKA2306/adaptive_wear_generator_pro/actions/workflows/strict-generation-contract.yml/badge.svg)](https://github.com/KAFKA2306/adaptive_wear_generator_pro/actions/workflows/strict-generation-contract.yml)
 
-Blender上の素体メッシュから、Tシャツ、パンツ、ブラ、靴下、手袋、プリーツスカートの候補形状を生成するアドオンです。
+Blender上の素体メッシュから、編集開始点となる衣装メッシュ候補を生成する研究用アドオンです。
 
-## 現在の状態：研究候補のみ
+## 現在の位置づけ
 
-**販売、Unity納品、VRChat実装、image2outfitの正式候補生成へ接続しないでください。** コード監査で、成功判定と品質表示に未修正の問題を確認しています。
+**生成物を完成衣装、販売品質、Unity/VRChat対応済み成果物として扱わないでください。**
 
-### 確認した阻害要因
+このリポジトリの価値は、自動完成衣装を主張することではなく、ルールベース処理で衣装候補を短時間で作り、生成処理の失敗と、その後に必要な検証を分離できることです。
 
-- 実装内に学習済みモデル、推論ランタイム、学習データ、モデル版が見当たらず、`AI`は名称だけのルールベース処理
-- `OptimizedAIWearGenerator`、`AI品質モード`、`AI閾値`等の名称が実装能力を過大表示
-- マテリアル、クロス、リギング等のポスト処理例外を`_apply_post_processing`で捕捉・ログ出力した後、オペレーターが`FINISHED`を返す
-- リギング失敗、アーマチュア未検出、ウェイト転送失敗を最終成功条件へ反映しない
-- プリーツ品質スコアが70未満でも警告だけで成功
-- メッシュ診断の`bm.is_valid`を多様体判定として表示しているが、非多様体エッジ検査ではない
-- 厚みを「メートル」と表示する一方、シーン単位・オブジェクトスケールの受入検査がない
-- `preserve_shapekeys`等の設定名が、全Shape Keyの意味的互換・完全転送を保証するように見える
-- Blender内生成成功と、Unity/VRChatでの動作・貫通・権利確認が分離されていない
+現在の実装には学習済みモデル、推論ランタイム、学習データ、モデル版はありません。`AI`を含むプロパティ名や表示は旧来の名称であり、実装能力の根拠にはなりません。
 
-これらを修正するまでは、生成物を「自動完成衣装」ではなく**編集対象のメッシュ候補**として扱います。
+## 現行実装
 
-## 実装上の実態
+- アドオン版: `4.1.1`
+- 最低Blender: `4.1.0`
+- パネル: `3D Viewport > Sidebar > AdaptiveWear`
+- 衣装タイプ: `T_SHIRT`, `PANTS`, `BRA`, `SOCKS`, `GLOVES`, `SKIRT`
+- 生成: `core_generators.py`
+- マテリアル: `core_materials.py`
+- リギング・クロス・診断補助: `core_utils.py`
+- UI: `ui_panels.py`
+- 生成時のfail-closed契約: `core_safety.py`
 
-現在確認できる処理は、Blender Python APIによる手続き的な形状抽出・モディファイア・頂点グループ・マテリアル・リギング補助です。
+登録時に`core_safety.install_strict_generation_contract()`が生成オペレーターへ厳格な後処理契約を設定します。マテリアル、クロス、要求された自動リギングなどの必須工程が失敗した場合、オペレーターは成功扱いにしません。
 
-- 素体メッシュを入力とするルールベース候補生成
-- Shrinkwrap系の形状追従
-- Solidify等による厚み
-- 頂点グループ・Data Transfer系の補助
-- ルールベースの衣装タイプ別領域選択
-- マテリアルプリセット
-- ボーン・頂点グループ診断
-- プリーツ形状評価
+## 既知の品質境界
 
-AIによる品質判定、トポロジ汎化、学習済み変形モデル、知覚評価モデルは確認できません。
+次は未解決または自動合格条件に含まれていません。
 
-## 対応環境
+- `AI`を含む旧名称がUI・プロパティに残っている
+- プリーツ品質スコア70未満は警告であり、生成失敗にはならない
+- `bm.is_valid`を表示する診断は真の非多様体検査ではない
+- 厚み表示とBlenderシーン単位・Object Scaleの整合を受入検査していない
+- Shape Keyの意味的互換・完全転送を保証していない
+- FBX、Unity、VRChatクライアントの自動ゲートがない
+- 過去の`test-results/`は現在の任意アバターに対する合格証拠ではない
 
-```text
-bl_info version: 4.1.0
-最低Blender: 4.1.0
-推奨監査環境: Blender 4.4系
-```
+## ドキュメント
 
-## インストールと実行
+- [使用方法](docs/USAGE.md)
+- [実装構造](docs/ARCHITECTURE.md)
+- [検証と成功条件](docs/VALIDATION.md)
+- [docsの管理方針](docs/README.md)
 
-1. リポジトリをアドオンとして配置またはZIP化する
-2. Blenderの`編集 > プリファレンス > アドオン`から有効化する
+開発予定・未解決事項はGitHub Issuesを正本とします。`docs/task*.md`のような別タスクリストは作りません。
+
+## 最小実行手順
+
+1. リポジトリをBlenderアドオンとして配置またはZIP化する
+2. Blenderで`AdaptiveWear Generator Pro`を有効化する
 3. `3D Viewport > Sidebar > AdaptiveWear`を開く
-4. 複製した検証用素体を指定する
-5. 衣装候補を生成する
-6. ログだけでなく成果物を検査する
+4. 検証用に複製した素体メッシュを指定する
+5. 衣装タイプと必要な設定を選び、`Generate Wear`を実行する
+6. `FINISHED`だけで品質合格とせず、[検証と成功条件](docs/VALIDATION.md)に従って成果物を検査する
 
-元の素体・Prefab・Blendファイルをバックアップしてください。
+元の`.blend`、Prefab、アバター、衣装データは別途バックアップしてください。第三者の購入アセットを公開リポジトリへ含めないでください。
 
-## 正式成功条件
+## 開発上の正本
 
-`FINISHED`が返るだけでは合格にしません。少なくとも次をすべて別々に検証する必要があります。
+| 対象 | 正本 |
+| --- | --- |
+| アドオンの能力 | `main`のPython実装 |
+| UI設定 | `core_properties.py`, `ui_panels.py` |
+| 生成時の必須工程 | `core_safety.py` |
+| 自動テスト | `tests/`, `.github/workflows/` |
+| 未解決事項 | GitHub Issues |
+| 利用・設計・検証説明 | `docs/`の3文書 |
 
-1. 生成オブジェクトが存在し、頂点・面が有限
-2. 非多様体、孤立頂点、ゼロ面積面、反転法線を検査
-3. UVとマテリアルが対象レンダラーで有効
-4. アーマチュア参照と全ウェイトが有効
-5. 必須Shape Keyの数・名称・頂点数が一致
-6. ニュートラル、腕上げ、腕組み、しゃがみ、座り、伏せで貫通検査
-7. Blender保存・再読込後も再現
-8. FBX出力・Unity読込後も再現
-9. VRChat SDKビルドとクライアント内確認
-10. 対象素体と衣装の利用許諾を確認
-
-## 修正すべきコード契約
-
-- ポスト処理の例外を握りつぶさず、必須工程失敗時は`CANCELLED`
-- `GenerationResult`へ各工程のPASS/FAILと証拠パスを保存
-- アーマチュアなしで`auto_rigging=true`なら失敗
-- シーン単位・適用済みスケールを事前検査
-- 真の非多様体検査を実装
-- `AI`表記を`heuristic`または`rule_based`へ変更
-- Shape Keyは「完全継承」ではなく、件数・頂点対応・差分を検査
-- Blender、Unity、VRChatの各ゲートを分離
-
-## 主な構成
-
-```text
-__init__.py
-core_properties.py
-core_operators.py
-core_generators.py
-core_utils.py
-ui_panels.py
-tests/
-test-results/
-docs/
-```
-
-既存の`test-results/`は過去の記録であり、現在の環境や任意のアバターでの合格を意味しません。
-
-## 注意
-
-- 購入アバターや第三者モデルを公開リポジトリへ含めないでください
-- Blender生成成功を販売品質と同一視しないでください
-- `AI駆動`、`最高品質`、`完全継承`という表示は現在の実装証拠と一致しません
-- 正式衣装制作は`image2outfit`側の候補生成・品質ゲート・人間レビューを正とします
-
-**README最終監査:** 2026-08-02
+コードと文書が矛盾する場合はコードと実行結果を優先し、文書を修正してください。

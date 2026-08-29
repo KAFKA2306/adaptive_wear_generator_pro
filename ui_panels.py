@@ -126,7 +126,7 @@ class AWG_PT_HelpPanel(bpy.types.Panel):
         layout.label(text="ドキュメント:", icon="FILE_TEXT")
         layout.operator(
             "wm.url_open", text="オンラインドキュメント", icon="INFO"
-        ).url = "https://example.com/awg-pro-docs"
+        ).url = "https://github.com/KAFKA2306/adaptive_wear_generator_pro/tree/main/docs"
 
         layout.separator()
 

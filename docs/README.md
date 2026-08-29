@@ -1,157 +1,37 @@
-# AdaptiveWear Generator Pro
+# Documentation
 
-AdaptiveWear Generator Pro は、Blender 4.4+ 用の高度なアドオンで、3Dキャラクターの素体から密着衣装を自動生成します。AI駆動のメッシュ生成アルゴリズムと高精度フィッティングエンジンにより、プロフェッショナルクオリティの衣装を簡単に作成できます。
+このディレクトリは、現在の`main`実装を説明する最小限の文書だけを置きます。
 
-## 主な機能
+## 正本
 
-### **衣装生成機能**
-- **Tシャツ**: 胴体・腕部をカバーする上半身衣装
-- **パンツ**: 腰部から下半身をカバーする衣装
-- **ブラジャー**: 胸部の下着衣装
-- **靴下**: 足首から膝上まで長さ調整可能
-- **手袋**: 指あり・指なし選択可能
+- [USAGE.md](USAGE.md): インストール、操作、失敗時の見方
+- [ARCHITECTURE.md](ARCHITECTURE.md): 現在のモジュール構成と実行フロー
+- [VALIDATION.md](VALIDATION.md): CI、自動テスト、完成衣装とみなすための追加検証
+- [../README.md](../README.md): リポジトリ全体の位置づけと既知の品質境界
+- [GitHub Issues](https://github.com/KAFKA2306/adaptive_wear_generator_pro/issues): 未解決事項と開発予定
 
-### **高度なフィッティング**
-- **密着フィット**: 素体に完全密着するタイトフィット
-- **厚み調整**: 0.001〜0.1mまでの精密な厚み設定
-- **Shrinkwrapアルゴリズム**: 素体形状への自動適合
+Blender Python APIそのものはこのリポジトリへ複製しません。公式文書を参照してください。
 
-### **完全なリギング対応**
-- **ボーン転送**: 素体のアーマチュア構造を自動コピー
-- **ウェイト転送**: Data Transferモディファイアによる高精度ウェイト適用
-- **ブレンドシェイプ転送**: 表情やシェイプキーの完全継承
+https://docs.blender.org/api/current/
 
-### **スマートマテリアル**
-- **プリセットシステム**: JSON形式のマテリアル設定
-- **Principled BSDF**: Blender 4.4対応の最新シェーダー
-- **衣装タイプ別**: 自動的に適切なマテリアルを適用
+## 文書を増やさないためのルール
 
-## システム要件
+- `tasks.md`, `task2.md`のようなタスクリストを作らない。開発予定はGitHub Issuesへ置く
+- Blender APIの一般解説をコピーしない。必要なAPIは公式文書へリンクする
+- 個人PCのパス、`.bat`、一回限りの実行メモを`docs/`へ置かない
+- 実装されていない構成、クラス、API、品質保証を書かない
+- `AI`, `完全`, `高品質`など、実装証拠より強い表現を能力説明に使わない
+- 過去のテスト結果を現在の任意入力に対する合格証拠として扱わない
+- コードと文書が矛盾した場合は、実装と再現可能なテストを確認して文書を直す
 
-- **Blender**: 4.1.0 以上（4.4 推奨）
+## 変更時の確認
 
-## インストール方法
+ドキュメントを更新するときは、少なくとも次を照合します。
 
-### **手動インストール**
-2. Blenderを起動し、**編集** → **プリファレンス** → **アドオン**を開く
-3. **インストール**ボタンをクリックしてZIPファイルを選択
-4. **AdaptiveWear Generator Pro**にチェックを入れて有効化
+1. `__init__.py`の`bl_info`
+2. `core_properties.py`の設定項目
+3. `core_operators.py`と`core_safety.py`の実行契約
+4. `ui_panels.py`の表示項目
+5. `.github/workflows/`と`tests/`の実際の検証範囲
 
-
-## 使用方法
-
-### **基本操作**
-
-1. **素体の準備**
-   - VRChat向けアバターを読み込む
-   - 
-2. **パネルアクセス**
-   - **3Dビューポート** → **サイドバー（Nキー）** → **AdaptiveWear**タブ
-
-3. **衣装生成**
-   - **素体メッシュ**: 対象となるキャラクターを選択
-   - **衣装タイプ**: 生成したい衣装を選択
-   - **フィット設定**: 密着度と厚みを調整
-   - **Generate Wear**ボタンをクリック
-
-### **高度な設定**
-
-**靴下の場合:**
-```
-靴下の長さ: 0.0（足首）〜 1.0（膝上）
-```
-
-**手袋の場合:**
-```
-手袋の指の有無: 指ありまたは指なし手袋
-```
-
-**フィット設定:**
-```
-フィット感を密着させる: より素体に密着
-厚み: 0.001〜0.1mで調整
-```
-
-## 頂点グループ設定
-
-素体メッシュに以下の頂点グループがあると最適に動作します：
-
-| 衣装タイプ  | 推奨頂点グループ                                                    |
-| ----------- | ------------------------------------------------------------------- |
-| **パンツ**  | `hip`, `pelvis`, `腰`                                               |
-| **Tシャツ** | `chest`, `spine`, `shoulder`, `upper_arm`, `胸`, `背中`, `肩`, `腕` |
-| **ブラ**    | `chest`, `breast`, `bust`, `胸`                                     |
-| **靴下**    | `foot`, `leg`, `calf`, `ankle`, `足`, `脚`, `足首`                  |
-| **手袋**    | `hand`, `finger`, `thumb`, `手`, `指`, `親指`                       |
-
-## マテリアルカスタマイズ
-
-### **プリセット編集**
-`presets/materials.json`を編集してカスタムマテリアルを追加：
-
-```json
-{
-  "wear_type": "CUSTOM_WEAR",
-  "name": "Custom_Material",
-  "color": [1.0, 0.5, 0.2, 1.0],
-  "alpha": 1.0,
-  "specular": 0.6,
-  "roughness": 0.4
-}
-```
-
-### **対応プロパティ**
-- `color`: RGBA値（0.0-1.0）
-- `alpha`: 透明度
-- `specular`: スペキュラー強度（Blender 4.x対応）
-- `roughness`: 表面粗さ
-
-## トラブルシューティング
-
-### **ログの確認**
-詳細なエラー情報は**システムコンソール**（**ウィンドウ** → **システムコンソールを切り替え**）で確認できます。
-
-## API リファレンス
-
-### **プロパティアクセス**
-```python
-import bpy
-
-# プロパティグループへのアクセス
-props = bpy.context.scene.adaptive_wear_generator_pro
-
-# 設定値の取得
-base_obj = props.base_body
-wear_type = props.wear_type
-thickness = props.thickness
-```
-
-### **プログラマティック実行**
-```python
-# オペレーターの直接実行
-bpy.ops.awg.generate_wear()
-
-# コアモジュールの直接使用
-from adaptive_wear_generator_pro.core import mesh_generator
-garment = mesh_generator.generate_wear_mesh(base_obj, "PANTS", props)
-```
-
-## 開発
-
-### **アーキテクチャ**
-```
-adaptive_wear_generator_pro/
-├── __init__.py              # アドオン登録
-├── core/                    # コアロジック
-│   ├── mesh_generator.py    # メッシュ生成
-│   ├── fit_engine.py        # フィッティング
-│   ├── material_generator.py # マテリアル
-│   └── operators.py         # オペレーター
-├── ui/                      # ユーザーインターフェース
-├── services/                # 共通サービス
-└── presets/                 # プリセットデータ
-```
-
-### **コーディング規約**
-- **PEP 8**準拠のPythonコード
-- **Blender 4.4 Python API**の最新機能を活用
+文書だけに存在する将来設計は作らず、必要ならIssueへ移します。
