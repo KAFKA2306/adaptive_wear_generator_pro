@@ -9,9 +9,7 @@ Blender上の素体メッシュから、編集開始点となる衣装メッシ�
 
 **生成物を完成衣装、販売品質、Unity/VRChat対応済み成果物として扱わないでください。**
 
-このリポジトリの価値は、自動完成衣装を主張することではなく、ルールベース処理で衣装候補を短時間で作り、生成処理の失敗と、その後に必要な検証を分離できることです。
-
-現在の実装には学習済みモデル、推論ランタイム、学習データ、モデル版はありません。`AI`を含むプロパティ名や表示は旧来の名称であり、実装能力の根拠にはなりません。
+現行実装はBlender Python APIを使ったルールベース処理です。学習済みモデル、推論ランタイム、学習データ、モデル版はありません。`AI`を含む旧クラス名・プロパティ名は互換性のため残っています。
 
 ## 現行実装
 
@@ -20,24 +18,30 @@ Blender上の素体メッシュから、編集開始点となる衣装メッシ�
 - パネル: `3D Viewport > Sidebar > AdaptiveWear`
 - 衣装タイプ: `T_SHIRT`, `PANTS`, `BRA`, `SOCKS`, `GLOVES`, `SKIRT`
 - 生成: `core_generators.py`
+- 生成オーケストレーションとfail-closed契約: `core_operators.py`
 - マテリアル: `core_materials.py`
-- リギング・クロス・診断補助: `core_utils.py`
+- リギング・クロス補助: `core_utils.py`
 - UI: `ui_panels.py`
-- 生成時のfail-closed契約: `core_safety.py`
 
-登録時に`core_safety.install_strict_generation_contract()`が生成オペレーターへ厳格な後処理契約を設定します。マテリアル、クロス、要求された自動リギングなどの必須工程が失敗した場合、オペレーターは成功扱いにしません。
+`AWGP_OT_GenerateWear`は、マテリアル、要求されたCloth modifier、要求されたArmature modifierを処理後のBlender状態で確認し、成立しない場合は`CANCELLED`を返します。runtime monkey-patchは使いません。
+
+## 自動検証
+
+Blender 4.1 CIで次を実行します。
+
+- 6衣装タイプの基本生成
+- T-Shirt / Pants / Skirtのメッシュ整合性
+- T-ShirtのFBX書き出し → 空シーンへ再読込
+- strict generation contractの静的契約テスト
+
+FBX round-tripはBlender標準exporter/importer内の検証です。Unity、VRChat SDK、VRChatクライアントは未検証です。
 
 ## 既知の品質境界
 
-次は未解決または自動合格条件に含まれていません。
-
-- `AI`を含む旧名称がUI・プロパティに残っている
-- プリーツ品質スコア70未満は警告であり、生成失敗にはならない
-- `bm.is_valid`を表示する診断は真の非多様体検査ではない
-- 厚み表示とBlenderシーン単位・Object Scaleの整合を受入検査していない
-- Shape Keyの意味的互換・完全転送を保証していない
-- FBX、Unity、VRChatクライアントの自動ゲートがない
-- 過去の`test-results/`は現在の任意アバターに対する合格証拠ではない
+- 実アバターへのフィット品質・ポーズ貫通は未検証
+- UV・テクスチャ・Shape Keyの意味的互換は未検証
+- Unity / VRChat SDK / VRChatクライアントは未検証
+- `AI`を含む旧名称がUI・プロパティに残る
 
 ## ドキュメント
 
@@ -65,9 +69,9 @@ Blender上の素体メッシュから、編集開始点となる衣装メッシ�
 | --- | --- |
 | アドオンの能力 | `main`のPython実装 |
 | UI設定 | `core_properties.py`, `ui_panels.py` |
-| 生成時の必須工程 | `core_safety.py` |
+| 生成成功条件 | `core_operators.py` |
 | 自動テスト | `tests/`, `.github/workflows/` |
 | 未解決事項 | GitHub Issues |
-| 利用・設計・検証説明 | `docs/`の3文書 |
+| 利用・設計・検証説明 | `docs/` |
 
 コードと文書が矛盾する場合はコードと実行結果を優先し、文書を修正してください。

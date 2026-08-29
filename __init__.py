@@ -34,11 +34,7 @@ def register() -> None:
     logger.info("=== AdaptiveWear Generator Pro v4.1.1 登録開始 ===")
     setup_logging()
     try:
-        from . import core_operators, core_properties, core_safety, ui_panels
-
-        # Replace the legacy post-processing method before Blender registers the
-        # operator. Failures now propagate to execute(), which returns CANCELLED.
-        core_safety.install_strict_generation_contract(core_operators)
+        from . import core_operators, core_properties, ui_panels
 
         if hasattr(bpy.types.Scene, "adaptive_wear_generator_pro"):
             del bpy.types.Scene.adaptive_wear_generator_pro
