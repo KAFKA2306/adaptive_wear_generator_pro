@@ -7,10 +7,21 @@ on:
     branches: [main]
   workflow_dispatch:
 
-jobs:
-  run-tests:
-    runs-on: ubuntu-latest
+permissions:
+  contents: read
 
+jobs:
+  static-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m unittest discover -s tests -p "test_strict_generation_contract.py" -v
+
+  blender-tests:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -27,7 +38,6 @@ jobs:
           "$(pwd)/${BLENDER_DIR}/blender" --version
           BLENDER_ADDON_DIR="$HOME/.config/blender/${BLENDER_VERSION%.*}/scripts/addons"
           echo "BLENDER_ADDON_DIR=${BLENDER_ADDON_DIR}" >> "$GITHUB_ENV"
-          echo "BLENDER_ADDON_PATH=${BLENDER_ADDON_DIR}" >> "$GITHUB_ENV"
           mkdir -p "$BLENDER_ADDON_DIR"
 
       - name: Install addon
