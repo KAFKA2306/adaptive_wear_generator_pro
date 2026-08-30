@@ -72,6 +72,7 @@ jobs:
           name: test-results-${{ github.run_attempt }}
           path: test-results/
           if-no-files-found: error
+          overwrite: true
 
   prune-merged-branches:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
