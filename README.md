@@ -75,6 +75,8 @@ Blender CI相当のテストは `tests/run_basic_functionality_test.py`, `tests/
 | 未解決事項・開発予定 | GitHub Issues |
 | 利用・構造・検証説明 | `README.md` |
 
+mainへのpush時、CIはmainへ完全にmerge済みのremote branchを削除します。未merge branchは削除しません。
+
 文書を増やして別authorityを作りません。Blender Python APIは複製せず公式文書を参照します。
 
 https://docs.blender.org/api/current/
