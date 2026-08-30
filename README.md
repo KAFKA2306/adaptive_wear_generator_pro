@@ -48,7 +48,8 @@ src/adaptive_wear_generator_pro/
 - 6衣装タイプの基本生成
 - T-Shirt / Pants / Skirtのメッシュ整合性
 - T-ShirtのFBX書き出し → 空シーンへ再読込
-- `test-results/`をActions artifactとして保存
+
+検証証拠は対象commit SHAに紐づくGitHub Actions workflow/job結果です。生成物をGitへコミットせず、artifact保存もCIの成功条件にしません。
 
 ローカル静的テスト:
 
