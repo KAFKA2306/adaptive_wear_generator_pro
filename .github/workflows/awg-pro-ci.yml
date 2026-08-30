@@ -7,10 +7,21 @@ on:
     branches: [main]
   workflow_dispatch:
 
-jobs:
-  run-tests:
-    runs-on: ubuntu-latest
+permissions:
+  contents: read
 
+jobs:
+  static-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m unittest discover -s tests -p "test_strict_generation_contract.py" -v
+
+  blender-tests:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -27,7 +38,6 @@ jobs:
           "$(pwd)/${BLENDER_DIR}/blender" --version
           BLENDER_ADDON_DIR="$HOME/.config/blender/${BLENDER_VERSION%.*}/scripts/addons"
           echo "BLENDER_ADDON_DIR=${BLENDER_ADDON_DIR}" >> "$GITHUB_ENV"
-          echo "BLENDER_ADDON_PATH=${BLENDER_ADDON_DIR}" >> "$GITHUB_ENV"
           mkdir -p "$BLENDER_ADDON_DIR"
 
       - name: Install addon
@@ -55,10 +65,23 @@ jobs:
       - name: Run FBX round-trip test
         run: blender -b -P tests/run_fbx_roundtrip_test.py -- --output-dir test-results/fbx-roundtrip
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
+  prune-merged-branches:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
         with:
-          name: test-results
-          path: test-results/
-          if-no-files-found: error
+          fetch-depth: 0
+      - name: Delete branches already merged into main
+        run: |
+          set -euo pipefail
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*'
+          while IFS= read -r ref; do
+            branch="${ref#origin/}"
+            case "$branch" in
+              main|HEAD) continue ;;
+            esac
+            git push origin --delete "$branch"
+          done < <(git for-each-ref --format='%(refname:short)' --merged=origin/main refs/remotes/origin/)
