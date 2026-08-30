@@ -4,7 +4,7 @@
 
 ## 1. strict generation contract
 
-`core_operators.AWGP_OT_GenerateWear._apply_post_processing()`が生成成功条件の正本です。runtime monkey-patchはありません。
+`src/adaptive_wear_generator_pro/core_operators.py`の`AWGP_OT_GenerateWear._apply_post_processing()`が生成成功条件の正本です。runtime monkey-patchはありません。
 
 自動テスト:
 
@@ -12,11 +12,11 @@
 python -m unittest discover -s tests -p "test_strict_generation_contract.py" -v
 ```
 
-静的契約テストは、後処理メソッドが例外を内部で握り潰さないこと、`core_safety.py`のような別authorityが存在しないこと、Cloth/Armatureの事後条件を検査するコードがあることを確認します。
+静的契約テストは、production Pythonが`src/adaptive_wear_generator_pro/`へ集約されていること、後処理メソッドが例外を内部で握り潰さないこと、別authorityが存在しないこと、Cloth/Armatureの事後条件を検査するコードがあることを確認します。
 
 ## 2. Blender 4.1 CI
 
-`.github/workflows/awg-pro-ci.yml`はBlender `4.1.0`で次を実行します。
+`.github/workflows/awg-pro-ci.yml`は`src/adaptive_wear_generator_pro/`をBlender addonsへコピーし、Blender `4.1.0`で次を実行します。
 
 ```bash
 blender -b -P tests/run_basic_functionality_test.py -- --output-dir test-results/basic-functionality
@@ -58,22 +58,7 @@ T-ShirtをBlender標準FBX exporterで書き出し、空シーンへ再読込し
 
 未確認項目は`PASS`にせず`UNVERIFIED`とします。
 
-## 5. 完成衣装として扱うための受入検査
-
-1. 生成オブジェクトが存在し、頂点・面の数値が有限
-2. 非多様体エッジ、孤立頂点、ゼロ面積面、反転法線を実検査
-3. UVとマテリアルが対象レンダラーで有効
-4. アーマチュア参照とウェイトが有効
-5. 必須Shape Keyの名称・頂点数・変形差分が期待どおり
-6. ニュートラル、腕上げ、腕組み、しゃがみ、座り等で重大な貫通がない
-7. `.blend`保存・再読込後も結果が再現
-8. FBX等へ出力し再読込後も結果が再現
-9. Unityへ読み込み、Prefab/Renderer/Armature/Blend Shapeを確認
-10. VRChat SDKビルド成功
-11. VRChatクライアント内で表示・ポーズ・アニメーションを確認
-12. 利用許諾を確認
-
-## 6. 証拠の扱い
+## 5. 証拠の扱い
 
 - GitHub Actionsは対象commit SHAとworkflow runを対応付けて確認する
 - PRではexact-head CI、merge後はmain commitのCIを確認する
@@ -81,4 +66,4 @@ T-ShirtをBlender標準FBX exporterで書き出し、空シーンへ再読込し
 - Blender外の品質を主張する場合はUnity/VRChat等の実環境結果を別証拠として残す
 - 警告や未実施項目を成功へ読み替えない
 
-検証要件や改善案は`docs/task*.md`へ複製せずGitHub Issuesで管理します。
+検証要件や改善案はGitHub Issuesで管理します。

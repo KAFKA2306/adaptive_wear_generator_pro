@@ -3,9 +3,16 @@ from pathlib import Path
 import unittest
 
 
+PACKAGE_ROOT = Path("src/adaptive_wear_generator_pro")
+
+
 class StrictGenerationContractTests(unittest.TestCase):
+    def test_source_uses_src_layout(self):
+        self.assertTrue((PACKAGE_ROOT / "__init__.py").is_file())
+        self.assertEqual(list(Path(".").glob("*.py")), [])
+
     def test_post_processing_is_direct_and_fail_closed(self):
-        source = Path("core_operators.py").read_text(encoding="utf-8")
+        source = (PACKAGE_ROOT / "core_operators.py").read_text(encoding="utf-8")
         tree = ast.parse(source)
         method = next(
             node
@@ -19,13 +26,13 @@ class StrictGenerationContractTests(unittest.TestCase):
         self.assertIn('mod.type == "ARMATURE"', source)
 
     def test_no_runtime_monkey_patch_authority(self):
-        self.assertFalse(Path("core_safety.py").exists())
-        source = Path("__init__.py").read_text(encoding="utf-8")
+        self.assertFalse((PACKAGE_ROOT / "core_safety.py").exists())
+        source = (PACKAGE_ROOT / "__init__.py").read_text(encoding="utf-8")
         self.assertNotIn("core_safety", source)
         self.assertNotIn("install_strict_generation_contract", source)
 
     def test_addon_no_longer_claims_ai_generation(self):
-        source = Path("__init__.py").read_text(encoding="utf-8")
+        source = (PACKAGE_ROOT / "__init__.py").read_text(encoding="utf-8")
         self.assertNotIn('"description": "AI', source)
         self.assertIn('"version": (4, 1, 1)', source)
 
