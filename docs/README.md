@@ -16,22 +16,19 @@ https://docs.blender.org/api/current/
 
 ## 文書を増やさないためのルール
 
-- `tasks.md`, `task2.md`のようなタスクリストを作らない。開発予定はGitHub Issuesへ置く
-- Blender APIの一般解説をコピーしない。必要なAPIは公式文書へリンクする
-- 個人PCのパス、`.bat`、一回限りの実行メモを`docs/`へ置かない
+- 開発予定はGitHub Issuesへ置く
+- Blender APIの一般解説をコピーしない
+- 個人PCのパス、一回限りの実行メモを`docs/`へ置かない
 - 実装されていない構成、クラス、API、品質保証を書かない
-- `AI`, `完全`, `高品質`など、実装証拠より強い表現を能力説明に使わない
 - 過去のテスト結果を現在の任意入力に対する合格証拠として扱わない
 - コードと文書が矛盾した場合は、実装と再現可能なテストを確認して文書を直す
 
 ## 変更時の確認
 
-ドキュメントを更新するときは、少なくとも次を照合します。
-
-1. `__init__.py`の`bl_info`
-2. `core_properties.py`の設定項目
-3. `core_operators.py`と`core_safety.py`の実行契約
-4. `ui_panels.py`の表示項目
+1. `src/adaptive_wear_generator_pro/__init__.py`の`bl_info`
+2. `src/adaptive_wear_generator_pro/core_properties.py`の設定項目
+3. `src/adaptive_wear_generator_pro/core_operators.py`の生成成功条件
+4. `src/adaptive_wear_generator_pro/ui_panels.py`の表示項目
 5. `.github/workflows/`と`tests/`の実際の検証範囲
 
 文書だけに存在する将来設計は作らず、必要ならIssueへ移します。

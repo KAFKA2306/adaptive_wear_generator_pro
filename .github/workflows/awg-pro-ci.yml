@@ -32,8 +32,9 @@ jobs:
 
       - name: Install addon
         run: |
+          ADDON_SOURCE_DIR="${{ github.workspace }}/src/adaptive_wear_generator_pro"
           ADDON_TARGET_DIR="${{ env.BLENDER_ADDON_DIR }}/adaptive_wear_generator_pro"
-          cp -R "${{ github.workspace }}" "$ADDON_TARGET_DIR"
+          cp -R "$ADDON_SOURCE_DIR" "$ADDON_TARGET_DIR"
           test -f "$ADDON_TARGET_DIR/__init__.py"
 
       - name: Create test result directories

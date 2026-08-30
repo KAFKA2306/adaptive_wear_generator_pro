@@ -6,23 +6,25 @@
 
 ```text
 adaptive_wear_generator_pro/
-├── __init__.py
-├── core_generators.py
-├── core_materials.py
-├── core_operators.py
-├── core_properties.py
-├── core_utils.py
-├── ui_panels.py
+├── src/
+│   └── adaptive_wear_generator_pro/
+│       ├── __init__.py
+│       ├── core_generators.py
+│       ├── core_materials.py
+│       ├── core_operators.py
+│       ├── core_properties.py
+│       ├── core_utils.py
+│       └── ui_panels.py
 ├── tests/
 ├── .github/workflows/
 └── docs/
 ```
 
-生成された`test-results/`、Python bytecode、個人環境用ファイルはGit管理しません。Node.js依存、weekly research、未参照preset JSONもありません。
+production Pythonは`src/adaptive_wear_generator_pro/`を正本とし、リポジトリルートへPythonモジュールを置きません。
 
 ## 登録フロー
 
-`__init__.py`の`register()`が、PropertyGroup、2つのOperator、3つのPanelを直接登録します。runtimeでメソッドを差し替えるmonkey-patchはありません。
+`src/adaptive_wear_generator_pro/__init__.py`の`register()`が、PropertyGroup、2つのOperator、3つのPanelを直接登録します。runtime monkey-patchはありません。
 
 ## 生成フロー
 
@@ -53,17 +55,20 @@ AWGP_OT_GenerateWear.execute()
 - `core_utils.py`: 選択、アーマチュア探索、リギング、クロス等の補助
 - `ui_panels.py`: `AdaptiveWear`サイドバー
 
+上記はすべて`src/adaptive_wear_generator_pro/`配下です。
+
 ## 診断
 
-`AWGP_OT_DiagnoseBones`は、頂点・面・頂点グループ・ボーン数に加え、BMeshの`edge.is_manifold`を使ってnon-manifold edge数、孤立頂点、ngon数を記録します。`bmesh.is_valid`を多様体性の代理として扱いません。
+`AWGP_OT_DiagnoseBones`は、頂点・面・頂点グループ・ボーン数に加え、BMeshの`edge.is_manifold`を使ってnon-manifold edge数、孤立頂点、ngon数を記録します。
 
 ## テストとCI
 
 - `.github/workflows/strict-generation-contract.yml`
   - `tests/test_strict_generation_contract.py`
+  - production Pythonが`src/`配下だけにあることを検査
 - `.github/workflows/awg-pro-ci.yml`
-  - Blender 4.1.0
-  - 6衣装タイプの基本生成
+  - `src/adaptive_wear_generator_pro/`をBlender addonsへコピー
+  - Blender 4.1.0で6衣装タイプの基本生成
   - T-Shirt / Pants / Skirtのメッシュ整合性
   - T-ShirtのFBX round-trip
 
