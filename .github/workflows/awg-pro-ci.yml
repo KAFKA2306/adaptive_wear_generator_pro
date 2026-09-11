@@ -53,6 +53,9 @@ jobs:
       - name: Run basic functionality test
         run: blender -b -P tests/run_basic_functionality_test.py -- --output-dir test-results/basic-functionality
 
+      - name: Run atomic rollback test
+        run: blender -b -P tests/run_atomic_rollback_test.py
+
       - name: Run mesh integrity test for T-Shirt
         run: blender -b -P tests/run_mesh_integrity_test.py -- --output-dir test-results/mesh-integrity --wear-type T_SHIRT
 
