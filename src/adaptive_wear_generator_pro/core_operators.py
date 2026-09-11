@@ -11,6 +11,56 @@ from . import core_generators, core_materials, core_utils
 logger = logging.getLogger(__name__)
 
 
+class _GenerationSceneSnapshot:
+    """Track Blender state owned by one generation attempt and roll it back on failure."""
+
+    def __init__(self, context: bpy.types.Context) -> None:
+        self._object_ids = {obj.as_pointer() for obj in bpy.data.objects}
+        self._mesh_ids = {mesh.as_pointer() for mesh in bpy.data.meshes}
+        self._material_ids = {material.as_pointer() for material in bpy.data.materials}
+        self._active_object = context.view_layer.objects.active
+        self._selected_objects = tuple(context.selected_objects)
+
+    def rollback(self, context: bpy.types.Context) -> list[str]:
+        errors: list[str] = []
+
+        for obj in list(bpy.data.objects):
+            if obj.as_pointer() not in self._object_ids:
+                try:
+                    bpy.data.objects.remove(obj, do_unlink=True)
+                except Exception as exc:
+                    errors.append(f"object {obj.name}: {exc}")
+
+        for mesh in list(bpy.data.meshes):
+            if mesh.as_pointer() not in self._mesh_ids and mesh.users == 0:
+                try:
+                    bpy.data.meshes.remove(mesh)
+                except Exception as exc:
+                    errors.append(f"mesh {mesh.name}: {exc}")
+
+        for material in list(bpy.data.materials):
+            if material.as_pointer() not in self._material_ids and material.users == 0:
+                try:
+                    bpy.data.materials.remove(material)
+                except Exception as exc:
+                    errors.append(f"material {material.name}: {exc}")
+
+        try:
+            for obj in context.view_layer.objects:
+                obj.select_set(False)
+            for obj in self._selected_objects:
+                if obj.name in context.view_layer.objects:
+                    obj.select_set(True)
+            if self._active_object is not None and self._active_object.name in context.view_layer.objects:
+                context.view_layer.objects.active = self._active_object
+            else:
+                context.view_layer.objects.active = None
+        except Exception as exc:
+            errors.append(f"selection restore: {exc}")
+
+        return errors
+
+
 class AWGP_OT_GenerateWear(Operator):
     bl_idname = "awgp.generate_wear"
     bl_label = "Generate Wear"
@@ -31,6 +81,7 @@ class AWGP_OT_GenerateWear(Operator):
             return {"CANCELLED"}
 
         started_at = time.time()
+        snapshot = _GenerationSceneSnapshot(context)
         try:
             garment = self._generate_garment(props)
             if garment is None or getattr(garment, "type", None) != "MESH":
@@ -44,8 +95,14 @@ class AWGP_OT_GenerateWear(Operator):
             self.report({"INFO"}, f"{props.wear_type} 生成完了: {garment.name} ({elapsed:.1f}秒)")
             return {"FINISHED"}
         except Exception as exc:
+            cleanup_errors = snapshot.rollback(context)
             logger.exception("衣装生成失敗")
-            self.report({"ERROR"}, f"生成エラー: {exc}")
+            if cleanup_errors:
+                cleanup_detail = "; ".join(cleanup_errors)
+                logger.error("衣装生成rollback失敗: %s", cleanup_detail)
+                self.report({"ERROR"}, f"生成エラー: {exc}; rollbackエラー: {cleanup_detail}")
+            else:
+                self.report({"ERROR"}, f"生成エラー: {exc}")
             return {"CANCELLED"}
 
     def _generate_garment(self, props) -> Optional[bpy.types.Object]:
